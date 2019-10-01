@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <AssemblyName>matchercli</AssemblyName>
+    <RootNamespace>Synfron.Staxe.Matcher.CLI</RootNamespace>
+    <Authors>Daquanne Dwight</Authors>
+    <Company>Synfron</Company>
+    <Copyright>© Daquanne Dwight</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Matcher.Interop.Model\Matcher.Interop.Model.csproj" />
+    <ProjectReference Include="..\Matcher.Interop\Matcher.Interop.csproj" />
+    <ProjectReference Include="..\Matcher\Matcher.csproj" />
+  </ItemGroup>
+  <Target Name="WorkaroundNetStandard" AfterTargets="ResolvePackageAssets">
+    <ItemGroup>
+      <TransitiveFrameworkReference Remove="NETStandard.Library" />
+    </ItemGroup>
+  </Target>
+</Project>

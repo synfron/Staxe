@@ -1,0 +1,10 @@
+﻿zz = abc, { abc }, ";";
+abc = bb | cc | dd | ee | ff | gg | hh | aa;
+aa = "A";
+bb = 3 * aa, "B";
+cc = 3 * [aa], "C";
+dd = {aa}, "D";
+ee = aa, {aa}, "E";
+ff = 3 * aa, 3 * [aa], "F";
+gg = {3 * aa}, "G";
+hh = "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z";

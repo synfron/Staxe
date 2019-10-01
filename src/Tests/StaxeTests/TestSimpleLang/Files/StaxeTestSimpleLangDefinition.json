@@ -1,0 +1,745 @@
+{
+  "name": "StaxeTestSimpleLang",
+  "startingFragment": "Script",
+  "indexingMode": "Lazy",
+  "patterns": [
+    {
+      "name": "Null",
+      "pattern": "`null"
+    },
+    {
+      "name": "Boolean",
+      "pattern": "`true|false"
+    },
+    {
+      "name": "Break",
+      "pattern": "`break"
+    },
+    {
+      "name": "Continue",
+      "pattern": "`continue"
+    },
+    {
+      "name": "Else",
+      "pattern": "`else"
+    },
+    {
+      "name": "If",
+      "pattern": "`if"
+    },
+    {
+      "name": "While",
+      "pattern": "`while"
+    },
+    {
+      "name": "Return",
+      "pattern": "`return"
+    },
+    {
+      "name": "New",
+      "pattern": "`new"
+    },
+    {
+      "name": "Variable",
+      "pattern": "`var"
+    },
+    {
+      "name": "Identifier",
+      "pattern": "`\\l(\\w|_)*"
+    },
+    {
+      "name": "Number",
+      "pattern": "~(\\d*\\.\\d+(e(-|\\+)?\\d+)?|\\d+)"
+    },
+    {
+      "name": "CommaSeparator",
+      "pattern": "\\s*,\\s*"
+    },
+    {
+      "name": "SemiColon",
+      "pattern": ";"
+    },
+    {
+      "name": "OpenParens",
+      "pattern": "\\("
+    },
+    {
+      "name": "CloseParens",
+      "pattern": "\\)"
+    },
+    {
+      "name": "Relational",
+      "pattern": "\\<|\\>|(\\<=)|(\\>=)"
+    },
+    {
+      "name": "Equality",
+      "pattern": "(==)|(\\!=)"
+    },
+    {
+      "name": "And",
+      "pattern": "&&"
+    },
+    {
+      "name": "Or",
+      "pattern": "\\|\\|"
+    },
+    {
+      "name": "BitwiseAnd",
+      "pattern": "&"
+    },
+    {
+      "name": "BitwiseOr",
+      "pattern": "\\|"
+    },
+    {
+      "name": "Multiplicative",
+      "pattern": "\\*|/|%"
+    },
+    {
+      "name": "PlusEqual",
+      "pattern": "\\+="
+    },
+    {
+      "name": "MinusEqual",
+      "pattern": "-="
+    },
+    {
+      "name": "Increment",
+      "pattern": "\\+\\+"
+    },
+    {
+      "name": "Additive",
+      "pattern": "\\+"
+    },
+    {
+      "name": "Subtractive",
+      "pattern": "-"
+    },
+    {
+      "name": "Equal",
+      "pattern": "="
+    },
+    {
+      "name": "OpenBrace",
+      "pattern": "\\{"
+    },
+    {
+      "name": "CloseBrace",
+      "pattern": "\\}"
+    },
+    {
+      "name": "OpenBracket",
+      "pattern": "\\["
+    },
+    {
+      "name": "CloseBracket",
+      "pattern": "\\]"
+    },
+    {
+      "name": "Colon",
+      "pattern": ":"
+    },
+    {
+      "name": "Not",
+      "pattern": "\\!"
+    },
+    {
+      "name": "StringLiteral",
+      "pattern": "\"((\"!.)|\\\\.)*\""
+    },
+    {
+      "name": "Whitespace",
+      "pattern": "\\s+"
+    }
+  ],
+  "fragments": [
+    {
+      "name": "Script",
+      "parts": [
+        "[BlockOrStatement]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Multiple",
+      "partsPadding": "Whitespace"
+    },
+    {
+      "name": "Identifier",
+      "parts": [
+        "Identifier"
+      ],
+      "partsMatchMode": "One",
+      "cacheable": true
+    },
+    {
+      "name": "Number",
+      "parts": [
+        "[Negative]",
+        "Number"
+      ],
+      "partsMatchMode": "Ordered"
+    },
+    {
+      "name": "Negative",
+      "parts": [
+        "Subtractive"
+      ],
+      "partsMatchMode": "One",
+      "minMatchedParts": 0,
+      "fallThrough": true
+    },
+    {
+      "name": "AnonymousFunction",
+      "parts": [
+        "[FunctionParameters]",
+        "[BlockOrStatement]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Ordered",
+      "clearCache": true
+    },
+    {
+      "name": "NewArray",
+      "parts": [
+        "[ArrayInitializer]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsPadding": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "One",
+      "start": "New"
+    },
+    {
+      "name": "FunctionParameters",
+      "parts": [
+        "[Identifier]"
+      ],
+      "partsDelimiter": "CommaSeparator",
+      "minMatchedParts": 0,
+      "partsMatchMode": "Multiple",
+      "partsPadding": "Whitespace",
+      "start": "OpenParens",
+      "end": "CloseParens"
+    },
+    {
+      "name": "Block",
+      "parts": [
+        "[BlockOrStatement]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "minMatchedParts": 0,
+      "partsMatchMode": "Multiple",
+      "partsPadding": "Whitespace",
+      "start": "OpenBrace",
+      "end": "CloseBrace",
+      "failureReportStrategy": 6
+    },
+    {
+      "name": "BlockOrStatement",
+      "parts": [
+        "[WhileBlock]",
+        "[IfElseBlock]",
+        "[Block]",
+        "[Statement]"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "IfElseBlock",
+      "parts": [
+        "[IfStatement]",
+        "[OptionalElseIfStatements]",
+        "[OptionalElseStatement]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Ordered"
+    },
+    {
+      "name": "OptionalElseIfStatements",
+      "parts": [
+        "[ElseIfStatement]"
+
+      ],
+      "MinMatchedParts": 0,
+      "partsMatchMode": "Multiple",
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "fallThrough": true
+    },
+    {
+      "name": "OptionalElseStatement",
+      "parts": [
+        "[ElseStatement]"
+
+      ],
+      "MinMatchedParts": 0,
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "ElseIfStatement",
+      "parts": [
+        "[IfStatement]"
+      ],
+      "start": "Else",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One"
+    },
+    {
+      "name": "ElseStatement",
+      "parts": [
+        "[BlockOrStatement]"
+      ],
+      "start": "Else",
+      "partsPadding": "Whitespace",
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "One"
+    },
+    {
+      "name": "IfStatement",
+      "parts": [
+        "[Condition]",
+        "[BlockOrStatement]"
+      ],
+      "start": "If",
+      "partsPadding": "Whitespace",
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Ordered"
+    },
+    {
+      "name": "Condition",
+      "parts": [
+        "[Evaluable]"
+      ],
+      "partsMatchMode": "One",
+      "partsPadding": "Whitespace",
+      "start": "OpenParens",
+      "end": "CloseParens",
+      "fallThrough": true
+    },
+    {
+      "name": "WhileBlock",
+      "parts": [
+        "[Condition]",
+        "[BlockOrStatement]"
+      ],
+      "start": "While",
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Ordered",
+      "partsPadding": "Whitespace"
+    },
+    {
+      "name": "Statement",
+      "parts": [
+        "[StatementBody]"
+      ],
+      "partsMatchMode": "One",
+      "minMatchedParts": 1,
+      "fallThrough": true,
+      "end": "SemiColon"
+    },
+    {
+      "name": "Statements",
+      "parts": [
+        "[Statement]"
+      ],
+      "partsMatchMode": "Multiple",
+      "minMatchedParts": 0,
+      "fallThrough": true
+    },
+    {
+      "name": "OpenEndedStatements",
+      "parts": [
+        "[StatementBody]"
+      ],
+      "partsMatchMode": "Multiple",
+      "partsDelimiter": "SemiColon",
+      "minMatchedParts": 0
+    },
+    {
+      "name": "StatementBody",
+      "parts": [
+        "[ItemReturn]",
+        "Break",
+        "Continue",
+        "[DeclarationAssignment]",
+        "[Declaration]",
+        "[Assignment]",
+        "[DirectedValuableChain]"
+      ],
+      "partsMatchMode": "One",
+      "partsPadding": "Whitespace",
+      "fallThrough": true
+    },
+    {
+      "name": "Declaration",
+      "parts": [
+        "[Identifier]"
+      ],
+      "partsMatchMode": "One",
+      "partsPadding": "Whitespace",
+      "start": "Variable"
+    },
+    {
+      "name": "AssignmentTarget",
+      "parts": [
+        "[Valuable]"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "Assignment",
+      "parts": [
+        "[AssignmentTarget]",
+        "[AssignmentEqual]",
+        "[Evaluable]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Ordered"
+    },
+    {
+      "name": "Equal",
+      "parts": [
+        "Equal"
+      ],
+      "partsMatchMode": "One",
+      "isNoise": true
+    },
+    {
+      "name": "AssignmentEqual",
+      "parts": [
+        "Equal",
+        "PlusEqual",
+        "MinusEqual"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "ValuableChain",
+      "parts": [
+        "[ValuableChainStart]",
+        "[OptionalChainables]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Ordered"
+    },
+    {
+      "name": "ValuableChainStart",
+      "parts": [
+        "[NewArray]",
+        "[ParensValuable]",
+        "[Identifier]"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "Chainable",
+      "parts": [
+        "[ValuedIndex]",
+        "[ArgumentValues]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Multiple",
+      "fallThrough": true
+    },
+    {
+      "name": "OptionalChainables",
+      "parts": [
+        "[Chainable]"
+      ],
+      "partsPadding": "Whitespace",
+      "partsDelimiter": "Whitespace",
+      "partsMatchMode": "Multiple",
+      "minMatchedParts": 0,
+      "fallThrough": true
+    },
+    {
+      "name": "ItemReturn",
+      "parts": [
+        "[Return]",
+        "[Evaluable]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsMatchMode": "Ordered",
+      "minMatchedParts": 1
+    },
+    {
+      "name": "Return",
+      "parts": [
+        "Return"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true,
+      "isNoise": true
+    },
+    {
+      "name": "DeclarationAssignment",
+      "parts": [
+        "[Identifier]",
+        "[Equal]",
+        "[Evaluable]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Ordered",
+      "partsPadding": "Whitespace",
+      "start": "Variable"
+    },
+    {
+      "name": "Valuable",
+      "parts": [
+        "Boolean",
+        "Null",
+        "StringLiteral",
+        "[Number]",
+        "[DirectedValuableChain]"
+      ],
+      "partsMatchMode": "One",
+      "cacheable": true
+    },
+    {
+      "name": "DirectedValuableChain",
+      "parts": [
+        "[ValuablePrefix]",
+        "[ValuableChain]",
+        "[ValuableSuffix]"
+      ],
+      "partsMatchMode": "Ordered"
+    },
+    {
+      "name": "ValuablePrefix",
+      "parts": [
+        "[Not]",
+        "Increment",
+        "[Decrement]"
+      ],
+      "minMatchedParts": 0,
+      "partsMatchMode": "One"
+    },
+    {
+      "name": "ValuableSuffix",
+      "parts": [
+        "Increment",
+        "[Decrement]"
+      ],
+      "minMatchedParts": 0,
+      "partsMatchMode": "One"
+    },
+    {
+      "name": "Decrement",
+      "parts": [
+        "Subtractive",
+        "Subtractive"
+      ],
+      "partsMatchMode": "Ordered"
+    },
+    {
+      "name": "Not",
+      "parts": [
+        "Not"
+      ],
+      "partsMatchMode": "Multiple"
+    },
+    {
+      "name": "ArgumentValues",
+      "parts": [
+        "[Evaluable]"
+      ],
+      "partsDelimiter": "CommaSeparator",
+      "minMatchedParts": 0,
+      "partsMatchMode": "Multiple",
+      "partsPadding": "Whitespace",
+      "start": "OpenParens",
+      "end": "CloseParens"
+    },
+    {
+      "name": "Evaluable",
+      "parts": [
+        "[AnonymousFunction]",
+        "[Expression]",
+        "[Valuable]"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "Expression",
+      "parts": [
+        "[Valuable]",
+        "[ExpressionSuffix]"
+      ],
+      "partsMatchMode": "Ordered",
+      "partsDelimiter": "Whitespace",
+      "fallThrough": true,
+      "partsDelimiterRequired": false,
+      "expressionMode": "BinaryTree"
+    },
+    {
+      "name": "ExpressionSuffix",
+      "parts": [
+        "[MultiplicativeSuffix]",
+        "[AdditiveSuffix]",
+        "[SubtractiveSuffix]",
+        "[EqualitySuffix]",
+        "[RelationalSuffix]",
+        "[AndSuffix]",
+        "[OrSuffix]",
+        "[BitwiseAndSuffix]",
+        "[BitwiseOrSuffix]"
+      ],
+      "partsMatchMode": "Multiple",
+      "fallThrough": true
+    },
+    {
+      "name": "MultiplicativeSuffix",
+      "parts": [
+        "[Valuable]"
+      ],
+      "start": "Multiplicative",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 1
+
+    },
+    {
+      "name": "AdditiveSuffix",
+      "parts": [
+        "[Valuable]"
+      ],
+      "start": "Additive",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 2
+    },
+    {
+      "name": "SubtractiveSuffix",
+      "parts": [
+        "[Valuable]"
+      ],
+      "start": "Subtractive",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 2
+    },
+    {
+      "name": "EqualitySuffix",
+      "parts": [
+        "[Valuable]"
+      ],
+      "start": "Equality",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 4
+    },
+    {
+      "name": "RelationalSuffix",
+      "parts": [
+        "[Valuable]"
+      ],
+      "start": "Relational",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 3
+    },
+    {
+      "name": "AndSuffix",
+      "parts": [
+        "[Valuable]"
+      ],
+      "start": "And",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 7
+    },
+    {
+      "name": "OrSuffix",
+      "parts": [
+        "[Valuable]"
+      ],
+      "start": "Or",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 8
+    },
+    {
+      "name": "BitwiseAndSuffix",
+      "parts": [
+        "[Valuable]"
+      ],
+      "start": "BitwiseAnd",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 5
+    },
+    {
+      "name": "BitwiseOrSuffix",
+      "parts": [
+        "[Valuable]"
+      ],
+      "start": "BitwiseOr",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 6
+    },
+    {
+      "name": "ParensValuable",
+      "parts": [
+        "[Evaluable]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "One",
+      "partsPadding": "Whitespace",
+      "start": "OpenParens",
+      "end": "CloseParens",
+      "cacheable": true
+    },
+    {
+      "name": "ValuedIndex",
+      "parts": [
+        "[Evaluable]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "One",
+      "partsPadding": "Whitespace",
+      "start": "OpenBracket",
+      "end": "CloseBracket",
+      "cacheable": true
+    },
+    {
+      "name": "ArrayInitializer",
+      "parts": [
+        "[Evaluable]"
+      ],
+      "minMatchedParts": 0,
+      "partsMatchMode": "One",
+      "partsPadding": "Whitespace",
+      "start": "OpenBracket",
+      "end": "CloseBracket",
+      "cacheable": true
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "name": "CharacterClass",
+  "startingFragment": "CharacterClass",
+  "patterns": [
+    {
+      "name": "OpenBracket",
+      "pattern": "\\["
+    },
+    {
+      "name": "CloseBracket",
+      "pattern": "\\]"
+    },
+    {
+      "name": "Caret",
+      "pattern": "^"
+    },
+    {
+      "name": "HexChar",
+      "pattern": "~#x([a-f]|[A-F]|[0-9]){1,4}"
+    },
+    {
+      "name": "Dash",
+      "pattern": "-"
+    },
+    {
+      "name": "AnyChar",
+      "pattern": "]!(\\\\.|.)"
+    }
+  ],
+  "fragments": [
+    {
+      "name": "CharacterClass",
+      "parts": [
+        "[NotCharacterClassBody]",
+        "[CharacterClassBody]"
+      ],
+      "partsMatchMode": "One",
+      "start": "OpenBracket",
+      "end": "CloseBracket",
+      "fallThrough": true
+    },
+    {
+      "name": "NotCharacterClassBody",
+      "parts": [
+        "[CharacterClassBody]"
+      ],
+      "partsMatchMode": "One",
+      "start": "Caret"
+    },
+    {
+      "name": "CharacterClassBody",
+      "parts": [
+        "[HexRange]",
+        "HexChar",
+        "[CharacterRange]",
+        "AnyChar"
+      ],
+      "partsMatchMode": "Multiple"
+    },
+    {
+      "name": "CharacterRange",
+      "parts": [
+        "AnyChar",
+        "AnyChar"
+      ],
+      "partsMatchMode": "Ordered",
+      "partsDelimiter": "Dash"
+    },
+    {
+      "name": "HexRange",
+      "parts": [
+        "HexChar",
+        "HexChar"
+      ],
+      "partsMatchMode": "Ordered",
+      "partsDelimiter": "Dash"
+    }
+  ]
+}

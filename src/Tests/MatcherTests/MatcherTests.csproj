@@ -1,0 +1,66 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+
+    <IsPackable>false</IsPackable>
+
+    <LangVersion>7.3</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Interop\Ebnf\Files\bnf.bnf" />
+    <None Remove="Interop\Ebnf\Files\CharacterClassDefinition.json" />
+    <None Remove="Interop\Ebnf\Files\ebnf-iso.ebnf" />
+    <None Remove="Interop\Ebnf\Files\EbnfDefinition.json" />
+    <None Remove="Interop\Ebnf\Files\Grammars\abc-iso.ebnf" />
+    <None Remove="Interop\Ebnf\Files\lua5_1-iso_w3c.ebnf" />
+    <None Remove="Interop\Ebnf\Files\Parsables\abc.txt" />
+    <None Remove="Interop\Ebnf\Files\xml-w3c.ebnf" />
+    <None Remove="Interop\Json\Files\TestDefinition.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Interop\Ebnf\Files\Grammars\abc-iso.ebnf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Interop\Ebnf\Files\Grammars\abc.bnf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Interop\Ebnf\Files\CharacterClassDefinition.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Interop\Ebnf\Files\EbnfDefinition.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Interop\Ebnf\Files\Grammars\abc-w3c.ebnf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Interop\Ebnf\Files\Parsables\abc.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Interop\Json\Files\TestDefinition.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Matcher.Interop.Ebnf\Matcher.Interop.Ebnf.csproj" />
+    <ProjectReference Include="..\..\Matcher.Interop.Model\Matcher.Interop.Model.csproj" />
+    <ProjectReference Include="..\..\Matcher\Matcher.csproj" />
+  </ItemGroup>
+  <Target Name="WorkaroundNetStandard" AfterTargets="ResolvePackageAssets">
+    <ItemGroup>
+      <TransitiveFrameworkReference Remove="NETStandard.Library" />
+    </ItemGroup>
+  </Target>
+</Project>

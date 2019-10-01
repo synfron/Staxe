@@ -1,0 +1,324 @@
+{
+  "name": "Ebnf",
+  "startingFragment": "Rules",
+  "indexingMode": "Eager",
+  "patterns": [
+    {
+      "name": "Number",
+      "pattern": "\\d+"
+    },
+    {
+      "name": "DoubleQuoteLiteral",
+      "pattern": "\"(\"!.)*\""
+    },
+    {
+      "name": "SingleQuoteLiteral",
+      "pattern": "'('!.)*'"
+    },
+    {
+      "name": "SpecialGroup",
+      "pattern": "\\[((\\[!\\]!.)|(\\\\\\[|\\\\\\]))+\\]"
+    },
+    {
+      "name": "Comment",
+      "pattern": "\\(\\*(\\*\\)!.)*\\*\\)|/\\*((\\*/)!.)*\\*/",
+      "isNoise": true
+    },
+    {
+      "name": "Is",
+      "pattern": "::=|:=|:|="
+    },
+    {
+      "name": "RuleName",
+      "pattern": "(<\\l(\\w|-|_)*>|\\l(\\w|-|_)*)"
+    },
+    {
+      "name": "Or",
+      "pattern": "\\|"
+    },
+    {
+      "name": "Asterisk",
+      "pattern": "\\*"
+    },
+    {
+      "name": "Plus",
+      "pattern": "\\+"
+    },
+    {
+      "name": "QuestionMark",
+      "pattern": "\\?"
+    },
+    {
+      "name": "Semicolon",
+      "pattern": ";"
+    },
+    {
+      "name": "Period",
+      "pattern": "\\."
+    },
+    {
+      "name": "OpenBrace",
+      "pattern": "\\{"
+    },
+    {
+      "name": "CloseBrace",
+      "pattern": "\\}"
+    },
+    {
+      "name": "OpenBracket",
+      "pattern": "\\["
+    },
+    {
+      "name": "CloseBracket",
+      "pattern": "\\]"
+    },
+    {
+      "name": "OpenParens",
+      "pattern": "\\("
+    },
+    {
+      "name": "CloseParens",
+      "pattern": "\\)"
+    },
+    {
+      "name": "Whitespace",
+      "pattern": "\\s+"
+    },
+    {
+      "name": "Comma",
+      "pattern": ","
+    },
+    {
+      "name": "HexChar",
+      "pattern": "~#x([a-f]|[A-F]|[0-9]){1,4}"
+    },
+    {
+      "name": "Dash",
+      "pattern": "-"
+    }
+  ],
+  "fragments": [
+    {
+      "name": "Rules",
+      "parts": [
+        "[Rule]"
+      ],
+      "partsMatchMode": "Multiple",
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsPadding": "Whitespace"
+    },
+    {
+      "name": "RulePrefix",
+      "parts": [
+        "[RuleName]"
+      ],
+      "partsMatchMode": "One",
+      "partsPadding": "Whitespace",
+      "end": "Is",
+      "fallThrough": true,
+      "cacheable": true
+    },
+    {
+      "name": "NotRulePrefix",
+      "parts": [
+        "[RulePrefix]"
+      ],
+      "partsMatchMode": "One",
+      "negate": true
+    },
+    {
+      "name": "EndMark",
+      "parts": [
+        "Semicolon",
+        "Period"
+      ],
+      "partsMatchMode": "One",
+      "isNoise": true
+    },
+    {
+      "name": "RuleName",
+      "parts": [
+        "RuleName"
+      ],
+      "partsMatchMode": "One",
+      "cacheable": true
+    },
+    {
+      "name": "Rule",
+      "parts": [
+        "[RulePrefix]",
+        "[Expression]",
+        "[EndMark]"
+
+      ],
+      "minMatchedParts": 2,
+      "partsMatchMode": "Ordered",
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "clearCache": true
+    },
+    {
+      "name": "Expression",
+      "parts": [
+        "[ExpressionValue]",
+        "[ExpressionSuffix]"
+      ],
+      "partsMatchMode": "Ordered",
+      "partsPadding": "Whitespace",
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "expressionMode": "LikeNameTree"
+    },
+    {
+      "name": "ExpressionSuffix",
+      "parts": [
+        "[OrSuffix]",
+        "[RepetitionSuffix]",
+        "[ExceptSuffix]",
+        "[CommaSuffix]"
+      ],
+      "minMatchedParts": 0,
+      "partsMatchMode": "Multiple",
+      "fallThrough": true
+    },
+    {
+      "name": "RepetitionSuffix",
+      "parts": [
+        "Asterisk",
+        "[ExpressionValue]"
+      ],
+      "partsMatchMode": "Ordered",
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "expressionOrder": 1
+    },
+    {
+      "name": "ExceptSuffix",
+      "parts": [
+        "Dash",
+        "[ExpressionValue]"
+      ],
+      "partsMatchMode": "Ordered",
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "expressionOrder": 2
+    },
+    {
+      "name": "CommaSuffix",
+      "parts": [
+        "[OptionalComma]",
+        "[NotRulePrefix]",
+        "[ExpressionValue]"
+      ],
+      "partsMatchMode": "Ordered",
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "expressionOrder": 3
+    },
+    {
+      "name": "OrSuffix",
+      "parts": [
+        "Or",
+        "[ExpressionValue]"
+      ],
+      "partsMatchMode": "Ordered",
+      "partsPadding": "Whitespace",
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "expressionOrder": 4
+
+    },
+    {
+      "name": "OptionalComma",
+      "parts": [
+        "Comma"
+      ],
+      "minMatchedParts": 0,
+      "partsMatchMode": "One"
+    },
+    {
+      "name": "ExpressionValue",
+      "parts": [
+        "[ZeroOrOneItem]",
+        "[OneOrMoreItem]",
+        "[ZeroOrMoreItem]",
+        "[Item]"
+      ],
+      "partsMatchMode": "One",
+      "partsPadding": "Whitespace",
+      "fallThrough": true
+    },
+    {
+      "name": "ExpressionGroup",
+      "parts": [
+        "[Expression]"
+      ],
+      "partsMatchMode": "One",
+      "start": "OpenParens",
+      "end": "CloseParens",
+      "partsPadding": "Whitespace",
+      "fallThrough": true
+    },
+    {
+      "name": "RepetitionGroup",
+      "parts": [
+        "[Expression]"
+      ],
+      "partsMatchMode": "One",
+      "partsPadding": "Whitespace",
+      "start": "OpenBrace",
+      "end": "CloseBrace"
+    },
+    {
+      "name": "OptionalGroup",
+      "parts": [
+        "[Expression]"
+      ],
+      "partsMatchMode": "One",
+      "partsPadding": "Whitespace",
+      "start": "OpenBracket",
+      "end": "CloseBracket"
+    },
+    {
+      "name": "ZeroOrOneItem",
+      "parts": [
+        "[Item]"
+      ],
+      "partsMatchMode": "One",
+      "end": "QuestionMark"
+    },
+    {
+      "name": "OneOrMoreItem",
+      "parts": [
+        "[Item]"
+      ],
+      "partsMatchMode": "One",
+      "end": "Plus"
+    },
+    {
+      "name": "ZeroOrMoreItem",
+      "parts": [
+        "[Item]"
+      ],
+      "partsMatchMode": "One",
+      "end": "Asterisk"
+    },
+    {
+      "name": "Item",
+      "parts": [
+        "DoubleQuoteLiteral",
+        "SingleQuoteLiteral",
+        "[ExpressionGroup]",
+        "[RepetitionGroup]",
+        "[OptionalGroup]",
+        "SpecialGroup",
+        "[RuleName]",
+        "HexChar",
+        "Number"
+      ],
+      "partsMatchMode": "One",
+      "cacheable": true
+    }
+  ]
+}

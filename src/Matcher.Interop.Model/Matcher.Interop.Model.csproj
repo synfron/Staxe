@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>Synfron.Staxe.Matcher.Interop.Model</RootNamespace>
+    <AssemblyName>Synfron.Staxe.Matcher.Interop.Model</AssemblyName>
+    <Version>1.0.1</Version>
+    <Authors>Daquanne Dwight</Authors>
+    <Company>Synfron</Company>
+    <Copyright>© Daquanne Dwight</Copyright>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <LangVersion>7.3</LangVersion>
+    <Description>Provides grammar model classes and a conversion utility to convert the models into a structure understood by the parser generator.  (Synfron.Staxe.Matcher)</Description>
+    <PackageProjectUrl>https://synfron.github.io/Staxe</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/synfron/Staxe</RepositoryUrl>
+    <PackageLicenseExpression></PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Matcher\Matcher.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>

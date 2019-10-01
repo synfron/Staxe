@@ -1,0 +1,63 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+
+    <IsPackable>false</IsPackable>
+
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+
+    <LangVersion>7.3</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="TestComplexLang\Files\StaxeTestComplexLangDefinition.json" />
+    <None Remove="TestExpressionLang\StaxeTestExpressionLangDefinition.json" />
+    <None Remove="TestJsonParser\Files\Large.json" />
+    <None Remove="TestJsonParser\Files\PersonInfo.json" />
+    <None Remove="TestSimpleLang\Files\StaxeTestSimpleLangDefinition.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="TestComplexLang\Files\StaxeTestComplexLangDefinition.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestExpressionLang\Files\StaxeTestExpressionLangDefinition.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestJsonParser\Files\Large.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestJsonParser\Files\PersonInfo.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestSimpleLang\Files\StaxeTestSimpleLangDefinition.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
+    <PackageReference Include="System.Memory" Version="4.5.3" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Executor\Executor.csproj" />
+    <ProjectReference Include="..\..\Generator\Generator.csproj" />
+    <ProjectReference Include="..\..\Matcher.Interop.Model\Matcher.Interop.Model.csproj" />
+    <ProjectReference Include="..\..\Matcher.Interop\Matcher.Interop.csproj" />
+    <ProjectReference Include="..\..\Matcher\Matcher.csproj" />
+  </ItemGroup>
+  <Target Name="WorkaroundNetStandard" AfterTargets="ResolvePackageAssets">
+    <ItemGroup>
+      <TransitiveFrameworkReference Remove="NETStandard.Library" />
+    </ItemGroup>
+  </Target>
+  <ProjectExtensions><VisualStudio><UserProperties testcomplexlang_4files_4staxetestcomplexlangdefinition_1json__JsonSchema="http://json.schemastore.org/asmdef" /></VisualStudio></ProjectExtensions>
+</Project>

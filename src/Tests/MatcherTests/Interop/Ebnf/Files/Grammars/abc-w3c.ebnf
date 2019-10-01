@@ -1,0 +1,10 @@
+﻿zz ::= abc+ ";" 
+abc ::= bb | cc | dd | ee | ff | gg | hh | aa 
+aa ::= "A" 
+bb ::= aa aa aa "B" 
+cc ::= aa? aa? aa? "C" 
+dd ::= aa* "D" 
+ee ::= aa+ "E" 
+ff ::= aa aa aa aa? aa? aa? "F" 
+gg ::= (aa aa aa)* "G" 
+hh ::= [H-Z]

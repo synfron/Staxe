@@ -1,0 +1,572 @@
+{
+  "name": "StaxeTestExpressionLang",
+  "startingFragment": "ExpressionOrValue",
+  "patterns": [
+    {
+      "name": "Number",
+      "pattern": "~(\\d*\\.\\d+(e(-|\\+)?\\d+)?|\\d+)"
+    },
+    {
+      "name": "Boolean",
+      "pattern": "`true|false"
+    },
+    {
+      "name": "Whitespace",
+      "pattern": "\\s+"
+    },
+    {
+      "name": "OpenParens",
+      "pattern": "\\("
+    },
+    {
+      "name": "CloseParens",
+      "pattern": "\\)"
+    },
+    {
+      "name": "Relational",
+      "pattern": "\\<|\\>|(\\<=)|(\\>=)"
+    },
+    {
+      "name": "Equality",
+      "pattern": "(==)|(\\!=)"
+    },
+    {
+      "name": "Exponent",
+      "pattern": "^"
+    },
+    {
+      "name": "And",
+      "pattern": "&"
+    },
+    {
+      "name": "Or",
+      "pattern": "\\|"
+    },
+    {
+      "name": "SquareRoot",
+      "pattern": "√"
+    },
+    {
+      "name": "Multiplicative",
+      "pattern": "\\*|/|%"
+    },
+    {
+      "name": "Additive",
+      "pattern": "\\+"
+    },
+    {
+      "name": "Subtractive",
+      "pattern": "-"
+    },
+    {
+      "name": "Not",
+      "pattern": "\\!"
+    }
+  ],
+  "fragments": [
+    {
+      "name": "Number",
+      "parts": [
+        "[Negative]",
+        "Number"
+      ],
+      "partsMatchMode": "Ordered"
+    },
+    {
+      "name": "Negative",
+      "parts": [
+        "Subtractive"
+      ],
+      "partsMatchMode": "One",
+      "minMatchedParts": 0,
+      "fallThrough": true
+    },
+    {
+      "name": "Factorials",
+      "parts": [
+        "Not"
+      ],
+      "partsMatchMode": "Multiple",
+      "minMatchedParts": 0
+    },
+    {
+      "name": "FactorialMathValuable",
+      "parts": [
+        "[MathValuable]",
+        "[Factorials]"
+      ],
+      "partsMatchMode": "Ordered"
+    },
+    {
+      "name": "OperatedMathValuable",
+      "parts": [
+        "[SquareRootMathValuable]",
+        "[FactorialMathValuable]"
+      ],
+      "partsMatchMode": "One",
+      "cacheable": true,
+      "fallThrough": true
+    },
+    {
+      "name": "SquareRootMathValuable",
+      "parts": [
+        "[FactorialMathValuable]"
+      ],
+      "partsMatchMode": "One",
+      "start": "SquareRoot"
+    },
+    {
+      "name": "OperatedBooleanValuable",
+      "parts": [
+        "[Nots]",
+        "[BooleanValuable]"
+      ],
+      "partsMatchMode": "Ordered",
+      "cacheable": true
+    },
+    {
+      "name": "MathParensValuable",
+      "parts": [
+        "[MathExpression]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "One",
+      "partsPadding": "Whitespace",
+      "start": "OpenParens",
+      "end": "CloseParens"
+    },
+    {
+      "name": "BooleanParensValuable",
+      "parts": [
+        "[BooleanExpression]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "One",
+      "partsPadding": "Whitespace",
+      "start": "OpenParens",
+      "end": "CloseParens"
+    },
+    {
+      "name": "MathValuable",
+      "parts": [
+        "[MathParensValuable]",
+        "[Number]"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "BooleanValuable",
+      "parts": [
+        "[BooleanParensValuable]",
+        "Boolean"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "CoreMathExpression",
+      "parts": [
+        "[OperatedMathValuable]",
+        "[CoreMathSuffix]"
+      ],
+      "partsMatchMode": "Ordered",
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "cacheable": true,
+      "expressionMode": "BinaryTree"
+    },
+    {
+      "name": "MathExpression",
+      "parts": [
+        "[OperatedMathValuable]",
+        "[MathSuffix]"
+      ],
+      "partsMatchMode": "Ordered",
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "cacheable": true,
+      "expressionMode": "BinaryTree"
+    },
+    {
+      "name": "ExponentSuffix",
+      "parts": [
+        "[OperatedMathValuable]"
+      ],
+      "start": "Exponent",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 1
+    },
+    {
+      "name": "MultiplicativeSuffix",
+      "parts": [
+        "[OperatedMathValuable]"
+      ],
+      "start": "Multiplicative",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 2
+    },
+    {
+      "name": "AdditiveSuffix",
+      "parts": [
+        "[OperatedMathValuable]"
+      ],
+      "start": "Additive",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 3
+    },
+    {
+      "name": "SubtractiveSuffix",
+      "parts": [
+        "[OperatedMathValuable]"
+      ],
+      "start": "Subtractive",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 3
+    },
+    {
+      "name": "CoreMathSuffix",
+      "parts": [
+        "[ExponentSuffix]",
+        "[MultiplicativeSuffix]",
+        "[AdditiveSuffix]",
+        "[SubtractiveSuffix]"
+      ],
+      "partsMatchMode": "Multiple",
+      "fallThrough": true
+    },
+    {
+      "name": "MathSuffix",
+      "parts": [
+        "[ExponentSuffix]",
+        "[MultiplicativeSuffix]",
+        "[AdditiveSuffix]",
+        "[SubtractiveSuffix]",
+        "[SimpleMathAndSuffix]",
+        "[SimpleMathOrSuffix]"
+      ],
+      "partsMatchMode": "Multiple",
+      "fallThrough": true
+    },
+    {
+      "name": "RelationalValuable",
+      "parts": [
+        "[CoreMathExpression]",
+        "[OperatedMathValuable]"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "RelationalExpression",
+      "parts": [
+        "[RelationalValuable]",
+        "[RelationalSuffixes]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Ordered",
+      "cacheable": true,
+      "expressionMode": "BinaryTree"
+    },
+    {
+      "name": "RelationalSuffix",
+      "parts": [
+        "[RelationalValuable]"
+      ],
+      "start": "Relational",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true
+    },
+    {
+      "name": "RelationalSuffixes",
+      "parts": [
+        "[RelationalSuffix]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Multiple",
+      "fallThrough": true
+    },
+    {
+      "name": "EqualityValuable",
+      "parts": [
+        "[RelationalExpression]",
+        "[CoreMathExpression]",
+        "[OperatedMathValuable]",
+        "[OperatedBooleanValuable]"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "EqualityExpression",
+      "parts": [
+        "[EqualityValuable]",
+        "[EqualitySuffixes]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Ordered",
+      "cacheable": true,
+      "expressionMode": "BinaryTree"
+    },
+    {
+      "name": "EqualitySuffix",
+      "parts": [
+        "[EqualityValuable]"
+      ],
+      "start": "Equality",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 5
+    },
+    {
+      "name": "EqualitySuffixes",
+      "parts": [
+        "[EqualitySuffix]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Multiple",
+      "fallThrough": true
+    },
+    {
+      "name": "BooleanOrValuable",
+      "parts": [
+        "[BooleanAndExpression]",
+        "[MathAndExpression]",
+        "[EqualityExpression]",
+        "[RelationalExpression]",
+        "[OperatedBooleanValuable]"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "BooleanOrExpression",
+      "parts": [
+        "[BooleanOrValuable]",
+        "[BooleanOrSuffixes]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Ordered",
+      "cacheable": true,
+      "expressionMode": "BinaryTree"
+    },
+    {
+      "name": "BooleanOrSuffix",
+      "parts": [
+        "[BooleanOrValuable]"
+      ],
+      "start": "Or",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 6
+    },
+    {
+      "name": "BooleanOrSuffixes",
+      "parts": [
+        "[BooleanOrSuffix]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Multiple",
+      "fallThrough": true
+    },
+    {
+      "name": "BooleanAndValuable",
+      "parts": [
+        "[EqualityExpression]",
+        "[RelationalExpression]",
+        "[OperatedBooleanValuable]"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "BooleanAndExpression",
+      "parts": [
+        "[BooleanAndValuable]",
+        "[BooleanAndSuffixes]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Ordered",
+      "cacheable": true,
+      "expressionMode": "BinaryTree"
+    },
+    {
+      "name": "BooleanAndSuffix",
+      "parts": [
+        "[BooleanAndValuable]"
+      ],
+      "start": "And",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 7
+    },
+    {
+      "name": "BooleanAndSuffixes",
+      "parts": [
+        "[BooleanAndSuffix]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Multiple",
+      "fallThrough": true
+    },
+    {
+      "name": "MathOrValuable",
+      "parts": [
+        "[MathAndExpression]",
+        "[CoreMathExpression]",
+        "[OperatedMathValuable]"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "MathOrExpression",
+      "parts": [
+        "[MathOrValuable]",
+        "[MathOrSuffixes]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Ordered",
+      "cacheable": true,
+      "expressionMode": "BinaryTree"
+    },
+    {
+      "name": "MathOrSuffix",
+      "parts": [
+        "[MathOrValuable]"
+      ],
+      "start": "Or",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 6
+    },
+    {
+      "name": "SimpleMathOrSuffix",
+      "parts": [
+        "[OperatedMathValuable]"
+      ],
+      "start": "Or",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 6
+    },
+    {
+      "name": "MathOrSuffixes",
+      "parts": [
+        "[MathOrSuffix]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Multiple",
+      "fallThrough": true
+    },
+    {
+      "name": "MathAndValuable",
+      "parts": [
+        "[CoreMathExpression]",
+        "[OperatedMathValuable]"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "MathAndExpression",
+      "parts": [
+        "[MathAndValuable]",
+        "[MathAndSuffixes]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Ordered",
+      "cacheable": true,
+      "expressionMode": "BinaryTree"
+    },
+    {
+      "name": "SimpleMathAndSuffix",
+      "parts": [
+        "[OperatedMathValuable]"
+      ],
+      "start": "And",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 6
+    },
+    {
+      "name": "MathAndSuffix",
+      "parts": [
+        "[MathAndValuable]"
+      ],
+      "start": "And",
+      "partsPadding": "Whitespace",
+      "partsMatchMode": "One",
+      "boundsAsParts": true,
+      "expressionOrder": 7
+    },
+    {
+      "name": "MathAndSuffixes",
+      "parts": [
+        "[MathAndSuffix]"
+      ],
+      "partsDelimiter": "Whitespace",
+      "partsDelimiterRequired": false,
+      "partsMatchMode": "Multiple",
+      "fallThrough": true
+    },
+    {
+      "name": "BooleanExpression",
+      "parts": [
+        "[BooleanOrExpression]",
+        "[BooleanAndExpression]",
+        "[EqualityExpression]",
+        "[RelationalExpression]"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "ExpressionOrValue",
+      "parts": [
+        "[BooleanExpression]",
+        "[MathExpression]",
+        "[OperatedMathValuable]",
+        "[OperatedBooleanValuable]"
+      ],
+      "partsMatchMode": "One",
+      "fallThrough": true
+    },
+    {
+      "name": "Nots",
+      "parts": [
+        "Not"
+      ],
+      "partsMatchMode": "Multiple",
+      "minMatchedParts": 0
+    }
+  ]
+}

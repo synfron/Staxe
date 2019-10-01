@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Matcher.CLI": {
+      "commandName": "Project",
+      "commandLineArgs": "--def \"C:\\Users\\AssistantX\\source\\repos\\Staxe\\Tests\\MatcherTests\\Interop\\Ebnf\\Files\\EbnfDefinition.json\" --type class --out \"C:/Users/AssistantX/source/repos/Staxe/Matcher.Interop.Bnf\""
+    }
+  }
+}

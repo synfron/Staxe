@@ -1,0 +1,12 @@
+﻿ <zz> ::= ";" | <abc> <zz>  
+ <abc> ::= <bb> | <cc> | <dd> | <ee> | <ff> | <gg> | <hh> | <aa> 
+ <aa> ::= "A"
+ <bb> ::= <aa> <aa> <aa> "B"
+ <cc> ::= "C" | <aa> "C" | <aa> <aa> "C" | <aa> <aa> <aa> "C"
+ <dd> ::= "D" | <aa> <dd>
+ <ee> ::= <aa> <eee>
+ <eee> = "E" | <aa> <eee>
+ <ff> ::= <aa> <aa> <aa> <fff>
+ <fff> ::= "F" | <aa> "F" | <aa> <aa> "F" | <aa> <aa> <aa> "F"
+ <gg> ::=  "G" | <aa> <aa> <aa> <gg>
+ <hh> ::= "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z"

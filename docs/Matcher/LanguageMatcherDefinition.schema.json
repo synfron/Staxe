@@ -1,0 +1,258 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "title": "Language Matcher",
+    "description": "Language parser grammar",
+    "required": [
+        "name",
+        "startingFragment",
+        "logMatches",
+        "patterns",
+        "fragments"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "name": {
+            "$id": "#/properties/name",
+            "type": "string",
+            "description": "The name of the language",
+            "examples": [
+                "Lua"
+            ],
+            "pattern": "^(\\w+)$"
+        },
+        "startingFragment": {
+            "$id": "#/properties/startingFragment",
+            "type": "string",
+            "description": "The fragment to use to begin parsing",
+            "examples": [
+                "Script"
+            ],
+            "pattern": "^(\\w+)$"
+        },
+        "indexingMode": {
+            "$id": "#/properties/indexingMode",
+            "type": "string",
+            "description": "Lexer configuration: \n\nNone - Disable lexing; \nLazy - Generate tokens on demand; \nEager - Generate tokens before parsing;",
+            "enum": [
+                "None",
+                "Lazy",
+                "Eager"
+            ],
+            "default": "Lazy",
+            "examples": [
+                "Eager"
+            ]
+        },
+        "logMatches": {
+            "$id": "#/properties/logMatches",
+            "type": "boolean",
+            "description": "Log fragment and pattern match successes and failures while parsing text",
+            "default": false
+        },
+        "patterns": {
+            "$id": "#/properties/patterns",
+            "type": "array",
+            "items": {
+                "$id": "#/properties/patterns/items",
+                "type": "object",
+                "title": "Pattern",
+                "description": "Patterns for generating tokens",
+                "required": [
+                    "name",
+                    "pattern"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "name": {
+                        "$id": "#/properties/patterns/items/properties/name",
+                        "type": "string",
+                        "description": "Pattern reference name",
+                        "examples": [
+                            "StringLiteral"
+                        ],
+                        "pattern": "^(\\w+)$"
+                    },
+                    "pattern": {
+                        "$id": "#/properties/patterns/items/properties/pattern",
+                        "type": "string",
+                        "description": "Pattern used to parse tokens from text",
+                        "examples": [
+                            "\\s+"
+                        ],
+                        "pattern": "^(.*)$"
+                    },
+                    "isNoise": {
+                        "$id": "#/properties/patterns/items/properties/isNoise",
+                        "type": "boolean",
+                        "description": "Text to be ignored while parsing",
+                        "default": false
+                    },
+                    "mergable": {
+                        "$id": "#/properties/patterns/items/properties/mergable",
+                        "type": "boolean",
+                        "description": "Tokens surrounding ignored noise can be removed",
+                        "default": false
+                    }
+                }
+            }
+        },
+        "fragments": {
+            "$id": "#/properties/fragments",
+            "type": "array",
+            "description": "Text parsing rules",
+            "items": {
+                "$id": "#/properties/fragments/items",
+                "type": "object",
+                "title": "Fragment",
+                "description": "Text parsing rule",
+                "required": [
+                    "name",
+                    "parts"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "name": {
+                        "$id": "#/properties/fragments/items/properties/name",
+                        "type": "string",
+                        "description": "Fragment reference name",
+                        "examples": [
+                            "Script"
+                        ],
+                        "pattern": "^(\\w+)$"
+                    },
+                    "parts": {
+                        "$id": "#/properties/fragments/items/properties/parts",
+                        "type": "array",
+                        "items": {
+                            "$id": "#/properties/fragments/items/properties/parts/items",
+                            "type": "string",
+                            "description": "Names of nested fragments (surrounded by '[' and ']' and/or patterns",
+                            "examples": [
+                                "StringLiteral",
+                                "[Script]"
+                            ],
+                            "pattern": "^(\\w+|\\[\\w+\\])$"
+                        }
+                    },
+                    "partsDelimiter": {
+                        "$id": "#/properties/fragments/items/properties/partsDelimiter",
+                        "type": "string",
+                        "description": "Name of the pattern that separates parts. Match not added to the AST",
+                        "examples": [
+                            "Whitespace"
+                        ],
+                        "pattern": "^(\\w+)$"
+                    },
+                    "partsDelimiterRequired": {
+                        "$id": "#/properties/fragments/items/properties/partsDelimiterRequired",
+                        "type": "boolean",
+                        "description": "Require that parts are separated by the delimiter",
+                        "default": true
+                    },
+                    "partsMatchMode": {
+                        "$id": "#/properties/fragments/items/properties/partsMatchMode",
+                        "type": "string",
+                        "description": "Parts treatment: \n\nMultiple - Match any of the parts (one or more); \nOrdered - Match the parts in the order given; \nOne - Match one of the parts;",
+                        "default": "Multiple",
+                        "enum": [
+                            "Multiple",
+                            "Ordered",
+                            "One"
+                        ]
+                    },
+                    "partsPadding": {
+                        "$id": "#/properties/fragments/items/properties/partsPadding",
+                        "type": "string",
+                        "description": "Name of the pattern that bounds the parts. Match not added to the AST",
+                        "examples": [
+                            "Whitespace"
+                        ],
+                        "pattern": "^(\\w+)$"
+                    },
+                    "start": {
+                        "$id": "#/properties/fragments/items/properties/start",
+                        "type": "string",
+                        "description": "Name of the pattern that marks the beginning of the fragment. Match not added to the AST by default",
+                        "examples": [
+                            "OpenBracket"
+                        ],
+                        "pattern": "^(\\w+)$"
+                    },
+                    "end": {
+                        "$id": "#/properties/fragments/items/properties/end",
+                        "type": "string",
+                        "description": "Name of the pattern that marks the end of the fragment. Match not added to the AST by default",
+                        "examples": [
+                            "CloseBracket"
+                        ],
+                        "pattern": "^(\\w+)$"
+                    },
+                    "minMatchedParts": {
+                        "$id": "#/properties/fragments/items/properties/minMatchedParts",
+                        "type": "integer",
+                        "description": "Minimum number of parts that must be matched"
+                    },
+                    "isNoise": {
+                        "$id": "#/properties/fragments/items/properties/isNoise",
+                        "type": "boolean",
+                        "description": "Do not add this part to the AST",
+                        "default": false
+                    },
+                    "fallThrough": {
+                        "$id": "#/properties/fragments/items/properties/fallThrough",
+                        "type": "boolean",
+                        "description": "Add the children of this fragment instead of this fragment to the AST",
+                        "default": false
+                    },
+                    "cacheable": {
+                        "$id": "#/properties/fragments/items/properties/cacheable",
+                        "type": "boolean",
+                        "description": "Store the match result of this fragment to avoid the need to match against the same text segment again",
+                        "default": false
+                    },
+                    "clearCache": {
+                        "$id": "#/properties/fragments/items/properties/clearCache",
+                        "type": "boolean",
+                        "description": "Clear the cache if successfully matched",
+                        "default": false
+                    },
+                    "expressionMode": {
+                        "$id": "#/properties/fragments/items/properties/expressionMode",
+                        "type": "string",
+                        "description": "Experssion parser mode: \n\nNone - No expression parsing; \nBinaryTree - Expression tree to have a max of two child parts per node; \nLikeNameTree - Expression tree combines parts that are the same type;",
+                        "default": "None",
+                        "enum": [
+                            "None",
+                            "BinaryTree",
+                            "LikeNameTree"
+                        ]
+                    },
+                    "expressionOrder": {
+                        "$id": "#/properties/fragments/items/properties/expressionOrder",
+                        "type": "integer",
+                        "description": "Expression precendence within parent (lower number is higher precendence)"
+                    },
+                    "boundsAsParts": {
+                        "$id": "#/properties/fragments/items/properties/boundsAsParts",
+                        "type": "boolean",
+                        "description": "Add the matched start and end patterns as parts",
+                        "default": false
+                    },
+                    "discardBounds": {
+                        "$id": "#/properties/fragments/items/properties/discardBounds",
+                        "type": "boolean",
+                        "description": "Start and end patterns do not move the read cursor",
+                        "default": false
+                    },
+                    "negate": {
+                        "$id": "#/properties/fragments/items/properties/negate",
+                        "type": "boolean",
+                        "description": "Negate the success or failure of the match",
+                        "default": false
+                    }
+                }
+            }
+        }
+    }
+}
