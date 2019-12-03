@@ -1047,11 +1047,11 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			int lbeIndex = Instructions.Count;
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.LE, new object[] { reloopIndex }, sourcePosition: matchData.StartIndex + matchData.Length));
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.BE, sourcePosition: matchData.StartIndex + matchData.Length));
+			_action.BlockDepth--;
 
 			ProcessFlowControls(reloopIndex, lbcIndex, lbeIndex);
 
 			_action.ActionStackLocation = origActionStackLocation;
-			_action.BlockDepth--;
 
 		}
 

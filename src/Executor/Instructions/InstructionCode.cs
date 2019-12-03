@@ -236,13 +236,13 @@ namespace Synfron.Staxe.Executor.Instructions
 		MP,
 		/// <summary>
 		/// Mapped Instruction to Register<br /><br />
-		/// Register: &lt;name&gt;<br />
+		/// Register: [&lt;group state&gt;] &lt;name&gt;<br /> Payload: [&lt;Use group state from register&gt;]
 		///</summary>
 		[Instruction(nameof(MIR))]
 		MIR,
 		/// <summary>
 		/// Mapped Pointer to Register<br /><br />
-		/// Register: &lt;Group pointer name&gt;<br />
+		/// Register: [&lt;group state&gt;] &lt;Group pointer name&gt;<br /> Payload: [&lt;Use group state from register&gt;]
 		///</summary>
 		[Instruction(nameof(MPR))]
 		MPR,

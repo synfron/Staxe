@@ -195,6 +195,7 @@ namespace Synfron.Staxe.Executor.Instructions
 			for (int i = stackPointers.Count - 1; i >= 0 && stackPointers[i].Depth >= blockDepth; i--, removeCount++) ;
 
 			stackPointers.RemoveRange(stackPointers.Count - removeCount, removeCount);
+			executionState.LastFrame.BlockDepth--;
 		}
 
 
@@ -636,10 +637,21 @@ namespace Synfron.Staxe.Executor.Instructions
 
 		private static void ExecuteInstructionMPR(IInstructionExecutor<G> executor, ExecutionState<G> executionState, object[] payload, StackList<ValuePointer<G>> stackRegister, StackList<StackValuePointer<G>> stackPointers)
 		{
-			IValue<G, string> identity = (IValue<G, string>)stackRegister.Last().Value;
-			if (executionState.GroupState.PointerMap.TryGetValue(identity.Data, out int index))
+			G groupState;
+			IValue<G, string> identity;
+			if (payload?.ElementAtOrDefault(0) is bool useRegisterGroup && useRegisterGroup)
 			{
-				stackRegister.SetLast(executionState.GroupState.GroupPointers.ElementAtOrDefault(index));
+				identity = (IValue<G, string>)stackRegister.TakeLast().Value;
+				groupState = ((IGroupValue<G>)stackRegister.Last().Value).State;
+			}
+			else
+			{
+				identity = (IValue<G, string>)stackRegister.Last().Value;
+				groupState = executionState.GroupState;
+			}
+			if (groupState.PointerMap.TryGetValue(identity.Data, out int index))
+			{
+				stackRegister.SetLast(groupState.GroupPointers.ElementAtOrDefault(index));
 			}
 			else
 			{
@@ -650,10 +662,21 @@ namespace Synfron.Staxe.Executor.Instructions
 
 		private static void ExecuteInstructionMIR(IInstructionExecutor<G> executor, ExecutionState<G> executionState, object[] payload, StackList<ValuePointer<G>> stackRegister, StackList<StackValuePointer<G>> stackPointers)
 		{
-			IValue<G, string> identity = (IValue<G, string>)stackRegister.Last().Value;
+			G groupState;
+			IValue<G, string> identity;
+			if (payload?.ElementAtOrDefault(0) is bool useRegisterGroup && useRegisterGroup)
+			{
+				identity = (IValue<G, string>)stackRegister.TakeLast().Value;
+				groupState = ((IGroupValue<G>)stackRegister.Last().Value).State;
+			}
+			else
+			{
+				identity = (IValue<G, string>)stackRegister.Last().Value;
+				groupState = executionState.GroupState;
+			}
 			stackRegister.SetLast(new ValuePointer<G>
 			{
-				Value = executor.ValueProvider.GetInt(executionState.GroupState.Group.InstructionMap[identity.Data])
+				Value = executor.ValueProvider.GetInt(groupState.Group.InstructionMap[identity.Data])
 			});
 		}
 

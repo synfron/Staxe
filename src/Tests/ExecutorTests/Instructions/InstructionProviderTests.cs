@@ -207,6 +207,7 @@ namespace ExecutorTests.Instructions
 
 			Assert.Empty(executionState.StackRegister);
 			Assert.Equal(4, executionState.StackPointers.Count);
+			Assert.Equal(3, executionState.LastFrame.BlockDepth);
 		}
 
 		[Fact]
@@ -227,6 +228,7 @@ namespace ExecutorTests.Instructions
 
 			Assert.Empty(executionState.StackRegister);
 			Assert.Empty(executionState.StackPointers);
+			Assert.Equal(-1, executionState.LastFrame.BlockDepth);
 		}
 
 		#endregion
@@ -1362,7 +1364,7 @@ namespace ExecutorTests.Instructions
 		#region InstructionMPR
 
 		[Fact]
-		public void InstructionMPR_Execute()
+		public void InstructionMPR_Execute_CurrentGroupState()
 		{
 			int location = 1;
 			string pointerName = "pointername";
@@ -1382,12 +1384,34 @@ namespace ExecutorTests.Instructions
 			Assert.Equal(groupPointers[location], executionState.StackRegister[0]);
 		}
 
+		[Fact]
+		public void InstructionMPR_Execute_RegisterGroupState()
+		{
+			int location = 1;
+			string pointerName = "pointername";
+			Dictionary<string, int> pointerMap = new Dictionary<string, int> { { pointerName, location } };
+			List<DeclaredValuePointer<G>> groupPointers = new List<DeclaredValuePointer<G>>() { new DeclaredValuePointer<G>("group"), new DeclaredValuePointer<G>("group"), new DeclaredValuePointer<G>("group") };
+			G groupState = Mock.Of<G>(m => m.GroupPointers == groupPointers && m.PointerMap == pointerMap);
+			ExecutionState<G> executionState = new ExecutionState<G>(Mock.Of<G>());
+			executionState.StackRegister.Add(new ValuePointer<G> { Value = new DefaultGroupValue<G>(groupState) });
+			executionState.StackRegister.Add(new ValuePointer<G> { Value = new DefaultStringValue<G>(pointerName) });
+			IInstructionExecutor<G> executor = Mock.Of<IInstructionExecutor<G>>();
+
+
+			Instruction<G> sut = InstructionProvider<G>.GetInstruction(InstructionCode.MPR, new object[] { true });
+			sut.Execute(executor, executionState, executionState.StackRegister, executionState.StackPointers);
+
+			Assert.Empty(executionState.StackPointers);
+			Assert.Single(executionState.StackRegister);
+			Assert.Equal(groupPointers[location], executionState.StackRegister[0]);
+		}
+
 		#endregion
 
 		#region InstructionMIR
 
 		[Fact]
-		public void InstructionMIR_Execute()
+		public void InstructionMIR_Execute_CurrentGroupState()
 		{
 			int location = 10;
 			string name = "name";
@@ -1403,6 +1427,31 @@ namespace ExecutorTests.Instructions
 
 
 			Instruction<G> sut = InstructionProvider<G>.GetInstruction(InstructionCode.MIR);
+			sut.Execute(executor, executionState, executionState.StackRegister, executionState.StackPointers);
+
+			Assert.Empty(executionState.StackPointers);
+			Assert.Single(executionState.StackRegister);
+			Assert.Equal(locationIntValue, executionState.StackRegister[0].Value);
+		}
+
+		[Fact]
+		public void InstructionMIR_Execute_RegisterGroupState()
+		{
+			int location = 10;
+			string name = "name";
+			IValue<G, int> locationIntValue = Mock.Of<IValue<G, int>>(m => m.Data == location);
+			Group<G> group = new Group<G>();
+			group.InstructionMap[name] = location;
+			G groupState = Mock.Of<G>(m => m.Group == group);
+			ExecutionState<G> executionState = new ExecutionState<G>(Mock.Of<G>());
+			executionState.StackRegister.Add(new ValuePointer<G> { Value = new DefaultGroupValue<G>(groupState) });
+			executionState.StackRegister.Add(new ValuePointer<G> { Value = new DefaultStringValue<G>(name) });
+			IValueProvider<G> valueProvider = Mock.Of<IValueProvider<G>>();
+			Mock.Get(valueProvider).Setup(m => m.GetInt(location)).Returns(locationIntValue);
+			IInstructionExecutor<G> executor = Mock.Of<IInstructionExecutor<G>>(m => m.ValueProvider == valueProvider);
+
+
+			Instruction<G> sut = InstructionProvider<G>.GetInstruction(InstructionCode.MIR, new object[] { true });
 			sut.Execute(executor, executionState, executionState.StackRegister, executionState.StackPointers);
 
 			Assert.Empty(executionState.StackPointers);

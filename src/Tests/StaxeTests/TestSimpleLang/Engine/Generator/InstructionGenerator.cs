@@ -517,11 +517,11 @@ namespace StaxeTests.TestSimpleLang.Engine.Generator
 			int lbeIndex = _instructions.Count;
 			_instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.LE, new object[] { lbIndex }, sourcePosition: matchData.StartIndex + matchData.Length));
 			_instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.BE, sourcePosition: matchData.StartIndex + matchData.Length));
+			_action.BlockDepth--;
 
 			ProcessFlowControls(lbIndex, lbcIndex, lbeIndex);
 
 			_action.ActionStackLocation = origActionStackLocation;
-			_action.BlockDepth--;
 		}
 
 		private void AddContinue(StringMatchData matchData)

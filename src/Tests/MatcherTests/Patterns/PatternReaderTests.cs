@@ -29,7 +29,8 @@ namespace MatcherTests.Patterns
 		}
 
 		[Theory]
-		[InlineData("\"(((\"|\\\\)!.)|\\\\.)+\"", "\"hello world\"")]
+		[InlineData("\"(((\\\\|\")!.)|\\\\.)*\"", "\"\\\"\"")]
+		[InlineData("\"(((\\\\|\")!.)|\\\\.)*\"", "\"hello world\"")]
 		[InlineData("abc!dba", "abdba")]
 		[InlineData("~abc", "AbC")]
 		[InlineData("ab\\(efg", "ab(efg")]
@@ -49,7 +50,9 @@ namespace MatcherTests.Patterns
 		public void PatternReader_Parse_Matches(string pattern, string text)
 		{
 			PatternMatcher matcher = PatternReader.Parse(pattern);
-			Assert.True(matcher.IsMatch(text, 0).success);
+			(bool success, int offset) = matcher.IsMatch(text, 0);
+			Assert.True(success);
+			Assert.Equal(text.Length, offset);
 		}
 	}
 }

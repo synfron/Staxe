@@ -200,7 +200,7 @@
     },
     {
       "name": "StringLiteral",
-      "pattern": "\"((\"!.)|\\\\.)*\""
+      "pattern": "\"(((\\\\|\")!.)|\\\\.)*\""
     },
     {
       "name": "Whitespace",
