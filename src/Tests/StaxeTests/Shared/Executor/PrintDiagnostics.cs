@@ -30,7 +30,7 @@ namespace StaxeTests.Shared.Executor
 				Instruction<G> instruction = instructions[i];
 				if (forceInterrupts && !instruction.Interruptable)
 				{
-					instruction = new Instruction<G>(instruction.Code, instruction.Payload, instruction.SourcePosition, true, instruction.ExecutionBody);
+					instruction = TestInstructionProvider<G>.GetInstruction(instruction.Code, instruction.Payload, instruction.SourcePosition, true, instruction.ExecutionBody);
 					instructions[i] = instruction;
 				}
 				Debug.WriteLine($"\t{i}.\t{instruction.Code} {string.Join(", ", instruction.Payload?.Select(item => ToValueString(item)) ?? Enumerable.Empty<string>())}");
@@ -52,9 +52,27 @@ namespace StaxeTests.Shared.Executor
 		{
 			int index = executionState.StackPointers.Count;
 			StringBuilder builder = new StringBuilder();
-			foreach (StackValuePointer<G> stackPointer in executionState.StackPointers)
+			foreach (StackValuePointer<G> pointer in executionState.StackPointers)
 			{
-				builder.Append($"({--index}) {stackPointer?.Identifier} -> {(stackPointer == null ? "undefined" : ToJsonString(stackPointer.Value, 5))}; ");
+				switch (pointer)
+				{
+					case VoidableStackValuePointer<G> stackPointer when stackPointer.IsVoid:
+					case null:
+						{
+							builder.Append($"{pointer?.Identifier ?? "_"} -> undefined; ");
+						}
+						break;
+					case VoidableStackValuePointer<G> stackPointer:
+						{
+							builder.Append($"({--index}) {stackPointer.Identifier ?? "_"} -> {ToJsonString(stackPointer.Value, 5)}; ");
+						}
+						break;
+					default:
+						{
+							builder.Append($"({--index}) {pointer.Identifier ?? "_"} -> {ToJsonString(pointer.Value, 5)}; ");
+						}
+						break;
+				}
 			}
 			Debug.WriteLine("\tStack: " + builder.ToString());
 		}
@@ -66,19 +84,26 @@ namespace StaxeTests.Shared.Executor
 			{
 				switch (pointer)
 				{
-					case DeclaredValuePointer<G> declaredPointer:
+					case null:
+					case DeclaredValuePointer<G> declaredPointer when !declaredPointer.IsDeclared:
+					case VoidableStackValuePointer<G> voidablePointer when voidablePointer.IsVoid:
 						{
-							builder.Append($"{declaredPointer?.Identifier} -> {(declaredPointer == null || !declaredPointer.IsDeclared ? "undefined" : ToJsonString(declaredPointer.Value, 5))}; ");
+							builder.Append($"{pointer?.Identifier ?? "_"} -> undefined; ");
 						}
 						break;
-					case EntryValuePointer<G> entrtPointer:
+					case DeclaredValuePointer<G> declaredPointer:
 						{
-							builder.Append($"[{ToJsonString(entrtPointer.Key)}] -> {(entrtPointer == null ? "undefined" : ToJsonString(entrtPointer.Value, 5))}; ");
+							builder.Append($"{declaredPointer.Identifier} -> {ToJsonString(declaredPointer.Value, 5)}; ");
+						}
+						break;
+					case EntryValuePointer<G> entryPointer:
+						{
+							builder.Append($"[{ToJsonString(entryPointer.Key)}] -> {(entryPointer == null ? "undefined" : ToJsonString(entryPointer.Value, 5))}; ");
 						}
 						break;
 					default:
 						{
-							builder.Append($"{pointer?.Identifier ?? "_"} -> {(pointer == null ? "undefined" : ToJsonString(pointer.Value, 5))}; ");
+							builder.Append($"{pointer.Identifier ?? "_"} -> {ToJsonString(pointer.Value, 5)}; ");
 						}
 						break;
 				}
@@ -93,19 +118,26 @@ namespace StaxeTests.Shared.Executor
 			{
 				switch (pointer)
 				{
-					case DeclaredValuePointer<G> declaredPointer:
+					case null:
+					case DeclaredValuePointer<G> declaredPointer when !declaredPointer.IsDeclared:
+					case VoidableStackValuePointer<G> voidablePointer when voidablePointer.IsVoid:
 						{
-							builder.Append($"{declaredPointer?.Identifier} -> {(declaredPointer == null || !declaredPointer.IsDeclared ? "undefined" : ToJsonString(declaredPointer.Value, 5))}; ");
+							builder.Append($"{pointer?.Identifier ?? "_"} -> undefined; ");
 						}
 						break;
-					case EntryValuePointer<G> entrtPointer:
+					case DeclaredValuePointer<G> declaredPointer:
 						{
-							builder.Append($"[{ToJsonString(entrtPointer.Key)}] -> {(entrtPointer == null ? "undefined" : ToJsonString(entrtPointer.Value, 5))}; ");
+							builder.Append($"{declaredPointer.Identifier} -> {ToJsonString(declaredPointer.Value, 5)}; ");
+						}
+						break;
+					case EntryValuePointer<G> entryPointer:
+						{
+							builder.Append($"[{ToJsonString(entryPointer.Key)}] -> {(entryPointer == null ? "undefined" : ToJsonString(entryPointer.Value, 5))}; ");
 						}
 						break;
 					default:
 						{
-							builder.Append($"{pointer?.Identifier ?? "_"} -> {(pointer == null ? "undefined" : ToJsonString(pointer.Value, 5))}; ");
+							builder.Append($"{pointer.Identifier ?? "_"} -> {ToJsonString(pointer.Value, 5)}; ");
 						}
 						break;
 				}

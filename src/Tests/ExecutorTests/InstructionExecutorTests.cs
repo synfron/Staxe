@@ -1,4 +1,5 @@
-﻿using Moq;
+﻿using ExecutorTests.Shared;
+using Moq;
 using Synfron.Staxe.Executor;
 using Synfron.Staxe.Executor.Instructions;
 using Synfron.Staxe.Executor.Interrupts;
@@ -21,18 +22,18 @@ namespace ExecutorTests
 		{
 			InstructionExecutionBody<G> executionBody = Mock.Of<InstructionExecutionBody<G>>();
 			InstructionExecutionBody<G> specialExecutionBody = Mock.Of<InstructionExecutionBody<G>>();
-			Instruction<G> specialInstruction = new Instruction<G>(InstructionCode.NON, null, null, false, specialExecutionBody);
+			Instruction<G> specialInstruction = TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, specialExecutionBody);
 			Group<G> group = new Group<G>
 			{
 				Instructions = new[]
 				{
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
 					specialInstruction,
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
 				}
 			};
 			G groupState = Mock.Of<G>(m => m.Group == group);
@@ -53,7 +54,7 @@ namespace ExecutorTests
 		public void InstructionExecutor_Execute_AllExecutable()
 		{
 			InstructionExecutionBody<G> executionBody = Mock.Of<InstructionExecutionBody<G>>();
-			Instruction<G> instruction = new Instruction<G>(InstructionCode.NON, null, null, false, executionBody);
+			Instruction<G> instruction = TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody);
 			Group<G> group = new Group<G>
 			{
 				Instructions = new[]
@@ -83,8 +84,8 @@ namespace ExecutorTests
 		{
 			InstructionExecutionBody<G> interruptableExecutionBody = Mock.Of<InstructionExecutionBody<G>>();
 			InstructionExecutionBody<G> uninterruptableExecutionBody = Mock.Of<InstructionExecutionBody<G>>();
-			Instruction<G> interruptableInstruction = new Instruction<G>(InstructionCode.NON, null, null, true, interruptableExecutionBody);
-			Instruction<G> uninterruptableInstruction = new Instruction<G>(InstructionCode.NON, null, null, false, uninterruptableExecutionBody);
+			Instruction<G> interruptableInstruction = TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, true, interruptableExecutionBody);
+			Instruction<G> uninterruptableInstruction = TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, uninterruptableExecutionBody);
 			Group<G> group = new Group<G>
 			{
 				Instructions = new[]
@@ -142,18 +143,18 @@ namespace ExecutorTests
 			int sourcePosition = 20;
 			string exceptionMessage = "Engine exception";
 			EngineRuntimeException thrownException = new EngineRuntimeException(exceptionMessage);
-			Instruction<G> specialInstruction = new Instruction<G>(InstructionCode.NON, null, sourcePosition, false, specialExecutionBody);
+			Instruction<G> specialInstruction = TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, sourcePosition, false, specialExecutionBody);
 			Group<G> group = new Group<G>
 			{
 				Instructions = new[]
 				{
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
 					specialInstruction,
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody)
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody)
 				}
 			};
 			G groupState = Mock.Of<G>(m => m.Group == group);
@@ -178,18 +179,18 @@ namespace ExecutorTests
 			InstructionExecutionBody<G> executionBody = Mock.Of<InstructionExecutionBody<G>>();
 			int sourcePosition = 20;
 			Exception thrownException = new Exception("Engine exception");
-			Instruction<G> specialInstruction = new Instruction<G>(InstructionCode.NON, null, sourcePosition, false, specialExecutionBody);
+			Instruction<G> specialInstruction = TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, sourcePosition, false, specialExecutionBody);
 			Group<G> group = new Group<G>
 			{
 				Instructions = new[]
 				{
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
 					specialInstruction,
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody),
-					new Instruction<G>(InstructionCode.NON, null, null, false, executionBody)
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody),
+					TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, null, null, false, executionBody)
 				}
 			};
 			G groupState = Mock.Of<G>(m => m.Group == group);

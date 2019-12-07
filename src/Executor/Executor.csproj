@@ -1,38 +1,38 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
-		<AssemblyName>Synfron.Staxe.Executor</AssemblyName>
-		<RootNamespace>Synfron.Staxe.Executor</RootNamespace>
-		<AssemblyVersion>1.0.2.0</AssemblyVersion>
-		<FileVersion>1.0.2.0</FileVersion>
-		<Version>1.0.2</Version>
-		<Authors>Daquanne Dwight</Authors>
-		<Company>Synfron</Company>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<Copyright>© Daquanne Dwight</Copyright>
-		<LangVersion>7.3</LangVersion>
-		<Description>Extensible stack based virtual machine</Description>
-		<RepositoryUrl>https://github.com/synfron/Staxe</RepositoryUrl>
-		<PackageProjectUrl>https://synfron.github.io/Staxe</PackageProjectUrl>
-		<PackageLicenseExpression></PackageLicenseExpression>
-		<PackageLicenseFile>LICENSE</PackageLicenseFile>
-	</PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>Synfron.Staxe.Executor</AssemblyName>
+    <RootNamespace>Synfron.Staxe.Executor</RootNamespace>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
+    <Version>1.1.0</Version>
+    <Authors>Daquanne Dwight</Authors>
+    <Company>Synfron</Company>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Copyright>© Daquanne Dwight</Copyright>
+    <LangVersion>7.3</LangVersion>
+    <Description>Extensible stack based virtual machine</Description>
+    <RepositoryUrl>https://github.com/synfron/Staxe</RepositoryUrl>
+    <PackageProjectUrl>https://synfron.github.io/Staxe</PackageProjectUrl>
+    <PackageLicenseExpression></PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+  </PropertyGroup>
 
-	<PropertyGroup>
-		<IncludeSymbols>true</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	</PropertyGroup>
+  <PropertyGroup>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\Shared\Shared.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\Shared.csproj" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<None Include="..\LICENSE">
-			<Pack>True</Pack>
-			<PackagePath></PackagePath>
-		</None>
-	</ItemGroup>
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>

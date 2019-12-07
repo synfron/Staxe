@@ -1,39 +1,39 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
-		<RootNamespace>Synfron.Staxe.Generator</RootNamespace>
-		<AssemblyName>Synfron.Staxe.Generator</AssemblyName>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<Version>1.0.1</Version>
-		<Authors>Daquanne Dwight</Authors>
-		<Company>Synfron</Company>
-		<Product>Synfron.Staxe.Generator</Product>
-		<Copyright>© Daquanne Dwight</Copyright>
-		<LangVersion>7.2</LangVersion>
-		<PackageProjectUrl>https://synfron.github.io/Staxe</PackageProjectUrl>
-		<RepositoryUrl>https://github.com/synfron/Staxe</RepositoryUrl>
-		<Description>Utilities and contracts for AST reading and instruction generation</Description>
-		<PackageLicenseExpression></PackageLicenseExpression>
-		<PackageLicenseFile>LICENSE</PackageLicenseFile>
-	</PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>Synfron.Staxe.Generator</RootNamespace>
+    <AssemblyName>Synfron.Staxe.Generator</AssemblyName>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>1.0.1</Version>
+    <Authors>Daquanne Dwight</Authors>
+    <Company>Synfron</Company>
+    <Product>Synfron.Staxe.Generator</Product>
+    <Copyright>© Daquanne Dwight</Copyright>
+    <LangVersion>7.2</LangVersion>
+    <PackageProjectUrl>https://synfron.github.io/Staxe</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/synfron/Staxe</RepositoryUrl>
+    <Description>Utilities and contracts for AST reading and instruction generation</Description>
+    <PackageLicenseExpression></PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+  </PropertyGroup>
 
 	<PropertyGroup>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\Executor\Executor.csproj" />
-		<ProjectReference Include="..\Matcher\Matcher.csproj" />
-		<ProjectReference Include="..\Shared\Shared.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Executor\Executor.csproj" />
+    <ProjectReference Include="..\Matcher\Matcher.csproj" />
+    <ProjectReference Include="..\Shared\Shared.csproj" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<None Include="..\LICENSE">
-			<Pack>True</Pack>
-			<PackagePath></PackagePath>
-		</None>
-	</ItemGroup>
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>

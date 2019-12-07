@@ -27,9 +27,18 @@ namespace Synfron.Staxe.Executor.Instructions
 			return new Instruction<G>(InstructionCode.SPL, payload, sourcePosition, interruptable, SpecialInstructionMap[(string)payload[0]]);
 		}
 
+		protected static Instruction<G> GetInstruction(InstructionCode code, object[] payload, int? sourcePosition, bool interruptable, InstructionExecutionBody<G> executionBody)
+		{
+			if (executionBody == null)
+			{
+				throw new ArgumentNullException(nameof(executionBody));
+			}
+			return new Instruction<G>(code, payload, sourcePosition, interruptable, executionBody);
+		}
+
 		private static readonly InstructionExecutionBody<G>[] _instructionExecutionBodies = new InstructionExecutionBody<G>[]
 		{
-				 null,
+				 ExecuteInstructionNON,
 				 null,
 				 ExecuteInstructionG,
 				 ExecuteInstructionGE,
@@ -138,7 +147,12 @@ namespace Synfron.Staxe.Executor.Instructions
 
 		public static Instruction<G> GetInstruction(InstructionCode code, object[] payload = null, int? sourcePosition = null, bool interruptable = false)
 		{
-			return new Instruction<G>(code, payload, sourcePosition, interruptable, _instructionExecutionBodies[(int)code]);
+			return GetInstruction(code, payload, sourcePosition, interruptable, _instructionExecutionBodies[(int)code]);
+		}
+
+		private static void ExecuteInstructionNON(IInstructionExecutor<G> executor, ExecutionState<G> executionState, object[] payload, StackList<ValuePointer<G>> stackRegister, StackList<StackValuePointer<G>> stackPointers)
+		{
+
 		}
 
 		private static void ExecuteInstructionA(IInstructionExecutor<G> executor, ExecutionState<G> executionState, object[] payload, StackList<ValuePointer<G>> stackRegister, StackList<StackValuePointer<G>> stackPointers)
@@ -207,6 +221,7 @@ namespace Synfron.Staxe.Executor.Instructions
 				case null:
 				case EntryValuePointer<G> entryPointer when !entryPointer.IsSet:
 				case DeclaredValuePointer<G> declaredPointer when !declaredPointer.IsDeclared:
+				case VoidableStackValuePointer<G> voidablePointer when voidablePointer.IsVoid:
 					stackRegister.SetLast(new ValuePointer<G> { Value = executor.ValueProvider.False });
 					break;
 				default:
@@ -1164,33 +1179,48 @@ namespace Synfron.Staxe.Executor.Instructions
 			int index = stackRegister.Count - count;
 			for (int i = 0; i < count; i++)
 			{
+				ValuePointer<G> pointer = stackRegister[index++];
 				switch ((InstructionCode)payload[payloadIndex++])
 				{
 					case InstructionCode.SPR:
-						stackPointers[stackPointers.Count - 1 - (int)payload[payloadIndex++]].Value = stackRegister[index++].Value;
+						stackPointers[stackPointers.Count - 1 - (int)payload[payloadIndex++]].Value = pointer.Value;
 						break;
 					case InstructionCode.GPR:
-						executionState.GroupState.GroupPointers[(int)payload[payloadIndex++]].Value = stackRegister[index++].Value;
+						executionState.GroupState.GroupPointers[(int)payload[payloadIndex++]].Value = pointer.Value;
 						break;
 					case InstructionCode.DPR:
-						executor.ExternalDynamicPointers(executionState, executionState.GroupState, (string)payload[payloadIndex++], (string)payload[payloadIndex++], PointerOperation.Get, executor.ValueProvider).Value = stackRegister[index++].Value;
+						executor.ExternalDynamicPointers(executionState, executionState.GroupState, (string)payload[payloadIndex++], (string)payload[payloadIndex++], PointerOperation.Get, executor.ValueProvider).Value = pointer.Value;
 						break;
 					case InstructionCode.CSP:
-						stackPointers.Add(new StackValuePointer<G>(stackRegister[index++].Value)
+						switch (pointer)
 						{
-							Identifier = (string)payload[payloadIndex++],
-							Origin = executionState.InstructionIndex,
-							Depth = executionState.LastFrame.BlockDepth
-						});
+							case null:
+								stackPointers.Add(new VoidableStackValuePointer<G>
+								{
+									Identifier = (string)payload[payloadIndex++],
+									Origin = executionState.InstructionIndex,
+									Depth = executionState.LastFrame.BlockDepth,
+									IsVoid = true
+								});
+								break;
+							default:
+								stackPointers.Add(new StackValuePointer<G>(pointer.Value)
+								{
+									Identifier = (string)payload[payloadIndex++],
+									Origin = executionState.InstructionIndex,
+									Depth = executionState.LastFrame.BlockDepth
+								});
+								break;
+						}
 						break;
 					case InstructionCode.CGP:
-						executionState.GroupState.GroupPointers.Add(new DeclaredValuePointer<G>("group", stackRegister[index++].Value)
+						executionState.GroupState.GroupPointers.Add(new DeclaredValuePointer<G>("group", pointer.Value)
 						{
 							Identifier = (string)payload[payloadIndex++]
 						});
 						break;
 					case InstructionCode.CDP:
-						executor.ExternalDynamicPointers(executionState, executionState.GroupState, (string)payload[payloadIndex++], (string)payload[payloadIndex++], PointerOperation.Add, executor.ValueProvider).Value = stackRegister[index++].Value;
+						executor.ExternalDynamicPointers(executionState, executionState.GroupState, (string)payload[payloadIndex++], (string)payload[payloadIndex++], PointerOperation.Add, executor.ValueProvider).Value = pointer.Value;
 						break;
 				}
 			}

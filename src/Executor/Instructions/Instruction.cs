@@ -7,7 +7,7 @@ namespace Synfron.Staxe.Executor.Instructions
 	public readonly struct Instruction<G>
 			where G : IGroupState<G>, new()
 	{
-		public Instruction(InstructionCode code, object[] payload, int? sourcePosition, bool interruptable, InstructionExecutionBody<G> execute)
+		internal Instruction(InstructionCode code, object[] payload, int? sourcePosition, bool interruptable, InstructionExecutionBody<G> execute)
 		{
 			Code = code;
 			Payload = payload;

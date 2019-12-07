@@ -1,4 +1,5 @@
-﻿using Moq;
+﻿using ExecutorTests.Shared;
+using Moq;
 using Synfron.Staxe.Executor;
 using Synfron.Staxe.Executor.Instructions;
 using Synfron.Staxe.Executor.Instructions.Flags;
@@ -748,13 +749,13 @@ namespace ExecutorTests.Instructions
 			string groupName = "groupname";
 			Instruction<G>[] originalInstructions = new Instruction<G>[]
 			{
-				new Instruction<G>(InstructionCode.NON, new object[] { 0 }, null, false, null),
-				new Instruction<G>(InstructionCode.G, null, null, false, null),
-				new Instruction<G>(InstructionCode.NON, new object[] { 1 }, null, false, null),
-				new Instruction<G>(InstructionCode.NON, new object[] { 2 }, null, false, null),
-				new Instruction<G>(InstructionCode.GE, null, null, false, null),
-				new Instruction<G>(InstructionCode.NON, new object[] { 3 }, null, false, null),
-				new Instruction<G>(InstructionCode.NON, new object[] { 4 }, null, false, null),
+				TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, new object[] { 0 }, null, false, null),
+				TestInstructionProvider<G>.GetInstruction(InstructionCode.G, null, null, false, null),
+				TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, new object[] { 1 }, null, false, null),
+				TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, new object[] { 2 }, null, false, null),
+				TestInstructionProvider<G>.GetInstruction(InstructionCode.GE, null, null, false, null),
+				TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, new object[] { 3 }, null, false, null),
+				TestInstructionProvider<G>.GetInstruction(InstructionCode.NON, new object[] { 4 }, null, false, null),
 			};
 			Group<G> group = new Group<G> { Instructions = originalInstructions };
 			G originalGroupState = Mock.Of<G>(m => m.Group == group);
