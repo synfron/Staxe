@@ -13,7 +13,7 @@ namespace Synfron.Staxe.Executor
 		List<DeclaredValuePointer<G>> GroupPointers { get; }
 		Dictionary<int, IValuable<G>> ActionOverrides { get; }
 		Dictionary<string, int> PointerMap { get; }
-		G Clone(Copy copyOptions);
+		G Clone(Copy copyOptions, Dictionary<object, object> entityMap = null);
 		void Merge(G otherGroupState, IValueProvider<G> valueProvider, GroupMerge mergeOptions);
 	}
 }

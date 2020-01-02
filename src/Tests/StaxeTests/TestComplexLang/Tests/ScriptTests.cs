@@ -505,6 +505,44 @@ var valueRatio = house.getValueRatio();
 		}
 
 		[Fact]
+		public void SubClassOverrideTest()
+		{
+			string code = @"
+class C1 {
+	size;
+	setC1() {
+		setC4();
+	}
+	setC4() {
+		size = 40;
+	}
+}
+
+class C2 : C1 {
+}
+
+class C3 : C2 {
+	size;
+	setC4() {
+		size = 50;
+	}
+
+	getC3() {
+		return size;
+	}
+}
+
+var c3 = new C3();
+c3.setC1();
+var size = c3.getC3();
+";
+
+			ExecutionState<GroupState> executionState = Run(code);
+
+			Assert.Equal(new DefaultIntValue<GroupState>(50), executionState.GetStackValue<ExecutionState<GroupState>, GroupState>("size"));
+		}
+
+		[Fact]
 		public void NamespaceTest()
 		{
 			string code = @"

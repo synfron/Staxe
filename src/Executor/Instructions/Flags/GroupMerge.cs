@@ -8,8 +8,10 @@ namespace Synfron.Staxe.Executor.Instructions.Flags
 		None = 0,
 		MapPointers = 1,
 		ReverseMapInstructions = 2,
-		OverridePointers = 4,
-		AsDependency = 8
+		OverrideDependencyPointers = 4,
+		AsComponentDependency = 8,
+		Dependencies = 16,
+		CloneNewDependencies = 32
 
 	}
 

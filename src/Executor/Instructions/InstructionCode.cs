@@ -451,7 +451,7 @@ namespace Synfron.Staxe.Executor.Instructions
 		RLR,
 		/// <summary>
 		/// List Register (pointer to) Register
-		/// Payload: &lt;pointer count&gt;
+		/// Payload: &lt;pointer count&gt; &lt;copy references&gt;
 		///</summary>
 		[Instruction(nameof(LRR))]
 		LRR,

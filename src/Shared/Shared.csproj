@@ -5,7 +5,7 @@
     <LangVersion>7.3</LangVersion>
     <AssemblyName>Synfron.Staxe.Shared</AssemblyName>
     <RootNamespace>Synfron.Staxe.Shared</RootNamespace>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Authors>Daquanne Dwight</Authors>
     <Company>Synfron</Company>
     <Copyright>© Daquanne Dwight</Copyright>

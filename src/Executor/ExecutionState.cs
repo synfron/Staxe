@@ -24,7 +24,7 @@ namespace Synfron.Staxe.Executor
 			Sync(frame);
 		}
 
-		public ExecutionState(Frame<G> frame)
+		public ExecutionState()
 		{
 
 		}

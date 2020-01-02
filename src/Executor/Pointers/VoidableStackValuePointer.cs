@@ -36,7 +36,7 @@ namespace Synfron.Staxe.Executor.Pointers
 			string errorMessage = "Undeclared variable";
 			if (Identifier != null)
 			{
-				string variableName = "'{Identifier}'";
+				string variableName = $"'{Identifier}'";
 				errorMessage += $" {variableName}";
 			}
 			throw new EngineRuntimeException(errorMessage);

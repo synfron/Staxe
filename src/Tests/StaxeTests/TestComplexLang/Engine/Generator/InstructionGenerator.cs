@@ -346,7 +346,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			{
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
 				AddGetClassVariable(identifier, false);
-				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.MG, new object[] { (int)(GroupMerge.MapPointers | GroupMerge.ReverseMapInstructions | GroupMerge.AsDependency) }, sourcePosition: matchData.StartIndex));
+				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.MG, new object[] { (int)(GroupMerge.MapPointers | GroupMerge.OverrideDependencyPointers | GroupMerge.AsComponentDependency | GroupMerge.Dependencies | GroupMerge.CloneNewDependencies) }, sourcePosition: matchData.StartIndex));
 			}
 		}
 
@@ -464,7 +464,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void AddFunction(string functionName, FragmentMatchData matchData, FragmentMatchData functionParameters, FragmentMatchData body)
 		{
-			int actionStartIndex = Instructions.Count + 4;
+			int actionStartIndex = Instructions.Count + 3;
 			_class.Actions.Add(functionName, actionStartIndex);
 			AddGetGroupVariable(functionName, matchData.StartIndex, false);
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
@@ -475,6 +475,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { (int)(Modifiers.WriteRestricted | Modifiers.Component) }, sourcePosition: matchData.StartIndex));
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RPM, sourcePosition: matchData.StartIndex));
+			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.MI, new object[] { functionName, actionStartIndex }, sourcePosition: matchData.StartIndex));
 
 			if (_reprocessRequiredIndexes.Count > 0)
 			{
@@ -550,17 +551,17 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void AddFunctionParameters(FragmentMatchData matchData)
 		{
+			string[] names = matchData.Parts.Select(part => GetIdentifierText((FragmentMatchData)part)).ToArray();
+			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.LRR, new object[] { names.Length, false }, sourcePosition: matchData.StartIndex));
+			List<object> payload = new List<object> { names.Length };
+			foreach (string name in names)
+			{
+				payload.Add(InstructionCode.CSP);
+				payload.Add(name);
+				AddParameterVariable(name);
+			}
 			if (matchData.Parts.Count > 0)
 			{
-				string[] names = matchData.Parts.Select(part => GetIdentifierText((FragmentMatchData)part)).ToArray();
-				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.LRR, new object[] { names.Length, false }, sourcePosition: matchData.StartIndex));
-				List<object> payload = new List<object> { names.Length };
-				foreach (string name in names)
-				{
-					payload.Add(InstructionCode.CSP);
-					payload.Add(name);
-					AddParameterVariable(name);
-				}
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RCP, payload.ToArray(), sourcePosition: matchData.StartIndex));
 			}
 		}

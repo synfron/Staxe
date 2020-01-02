@@ -322,7 +322,7 @@ namespace ExecutorTests.Instructions
 			DefaultGroupValue<G> groupValue = new DefaultGroupValue<G>(groupState);
 			G clonedGroupState = Mock.Of<G>();
 			DefaultGroupValue<G> clonedGroupValue = new DefaultGroupValue<G>(clonedGroupState);
-			Mock.Get(groupState).Setup(m => m.Clone(It.IsAny<Copy>())).Returns(clonedGroupState);
+			Mock.Get(groupState).Setup(m => m.Clone(It.IsAny<Copy>(), It.IsAny<Dictionary<object, object>>())).Returns(clonedGroupState);
 			ExecutionState<G> executionState = new ExecutionState<G>(Mock.Of<G>());
 			executionState.StackRegister.Add(new ValuePointer<G> { Value = groupValue });
 			IValueProvider<G> valuePointer = Mock.Of<IValueProvider<G>>(m => m.GetGroup(It.IsAny<G>()) == clonedGroupValue);
@@ -332,7 +332,7 @@ namespace ExecutorTests.Instructions
 			sut.Execute(executor, executionState, executionState.StackRegister, executionState.StackPointers);
 
 			Assert.Empty(executionState.StackPointers);
-			Mock.Get(groupState).Verify(m => m.Clone(payloadValue), Times.Once);
+			Mock.Get(groupState).Verify(m => m.Clone(payloadValue, It.IsAny<Dictionary<object, object>>()), Times.Once);
 			Mock.Get(valuePointer).Verify(m => m.GetGroup(clonedGroupState), Times.Once);
 			Assert.Single(executionState.StackRegister);
 			Assert.Equal(clonedGroupValue, Enumerable.Last(executionState.StackRegister).Value);
@@ -345,7 +345,7 @@ namespace ExecutorTests.Instructions
 		[Fact]
 		public void InstructionMG_Execute()
 		{
-			GroupMerge mergeOption = GroupMerge.OverridePointers;
+			GroupMerge mergeOption = GroupMerge.OverrideDependencyPointers;
 			G groupState = Mock.Of<G>();
 			G otherGroupState = Mock.Of<G>();
 			DefaultGroupValue<G> groupValue = new DefaultGroupValue<G>(groupState);

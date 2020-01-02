@@ -15,7 +15,7 @@ namespace ExecutorTests.TestMocks
 		public virtual Dictionary<int, IValuable<MockableGroupState>> ActionOverrides { get; }
 		public virtual Dictionary<string, int> PointerMap { get; }
 
-		public virtual MockableGroupState Clone(Copy copyOptions) { return null; }
+		public virtual MockableGroupState Clone(Copy copyOptions, Dictionary<object, object> entityMap = null) { return null; }
 		public virtual void Merge(MockableGroupState otherGroupState, IValueProvider<MockableGroupState> valueProvider, GroupMerge mergeOptions) { }
 	}
 }

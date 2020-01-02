@@ -41,6 +41,7 @@ namespace StaxeTests.Shared.Executor
 		private static void OnInterrupt<G>(string code, InstructionExecutor<G> _, InterruptedEventArgs<G> args) where G : IGroupState<G>, new()
 		{
 			PrintStackPointers(args.ExecutionState);
+			PrintGroupPointers(args.ExecutionState);
 			PrintStackRegister(args.ExecutionState);
 			PrintListRegister(args.ExecutionState);
 
@@ -75,6 +76,30 @@ namespace StaxeTests.Shared.Executor
 				}
 			}
 			Debug.WriteLine("\tStack: " + builder.ToString());
+		}
+
+		private static void PrintGroupPointers<G>(ExecutionState<G> executionState) where G : IGroupState<G>, new()
+		{
+			int index = 0;
+			StringBuilder builder = new StringBuilder();
+			foreach (DeclaredValuePointer<G> pointer in executionState.GroupState.GroupPointers)
+			{
+				switch (pointer)
+				{
+					case DeclaredValuePointer<G> groupPointer when !groupPointer.IsDeclared:
+					case null:
+						{
+							builder.Append($"({index++}) {pointer?.Identifier ?? "_"} -> undefined; ");
+						}
+						break;
+					default:
+						{
+							builder.Append($"({index++}) {pointer.Identifier ?? "_"} -> {ToJsonString(pointer.Value, 5)}; ");
+						}
+						break;
+				}
+			}
+			Debug.WriteLine("\tGroup Pointers: " + builder.ToString());
 		}
 
 		private static void PrintStackRegister<G>(ExecutionState<G> executionState) where G : IGroupState<G>, new()

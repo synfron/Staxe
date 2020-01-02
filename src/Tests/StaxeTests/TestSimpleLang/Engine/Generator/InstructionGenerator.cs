@@ -188,17 +188,17 @@ namespace StaxeTests.TestSimpleLang.Engine.Generator
 
 		private void AddFunctionParameters(FragmentMatchData matchData)
 		{
+			string[] names = matchData.Parts.Select(part => GetIdentifierText((FragmentMatchData)part)).ToArray();
+			_instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.LRR, new object[] { names.Length, false }, sourcePosition: matchData.StartIndex));
+			List<object> payload = new List<object> { names.Length };
+			foreach (string name in names)
+			{
+				payload.Add(InstructionCode.CSP);
+				payload.Add(name);
+				AddParameterVariable(name);
+			}
 			if (matchData.Parts.Count > 0)
 			{
-				string[] names = matchData.Parts.Select(part => GetIdentifierText((FragmentMatchData)part)).ToArray();
-				_instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.LRR, new object[] { names.Length, false }, sourcePosition: matchData.StartIndex));
-				List<object> payload = new List<object> { names.Length };
-				foreach (string name in names)
-				{
-					payload.Add(InstructionCode.CSP);
-					payload.Add(name);
-					AddParameterVariable(name);
-				}
 				_instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RCP, payload.ToArray(), sourcePosition: matchData.StartIndex));
 			}
 		}

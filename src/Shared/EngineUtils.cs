@@ -67,7 +67,11 @@ namespace Synfron.Staxe.Shared
 					break;
 				}
 			}
-			return text.Substring(position, Math.Min(nextPosition - position, trimLength));
+			if (text.Length == nextPosition)
+			{
+				nextPosition++;
+			}
+			return text.Substring(position, Math.Min(nextPosition - position - 1, trimLength));
 		}
 
 		public static string GetLineAtPosition(string text, int position, int trimLength = int.MaxValue)
@@ -88,6 +92,10 @@ namespace Synfron.Staxe.Shared
 				{
 					break;
 				}
+			}
+			if (text.Length == nextPosition)
+			{
+				nextPosition++;
 			}
 			return text.Substring(lineStartPosition, Math.Min(Math.Max(nextPosition - lineStartPosition - 1, 0), trimLength));
 		}
