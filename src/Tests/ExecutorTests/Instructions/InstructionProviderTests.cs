@@ -781,7 +781,7 @@ namespace ExecutorTests.Instructions
 		#region InstructionGDR
 
 		[Fact]
-		public void InstructionGDR_Execute()
+		public void InstructionGDR_Execute_PayloadLocation()
 		{
 			int location = 3;
 			G otherGroupState = Mock.Of<G>();
@@ -794,6 +794,28 @@ namespace ExecutorTests.Instructions
 			ExecutionState<G> executionState = new ExecutionState<G>(groupState);
 
 			Instruction<G> sut = InstructionProvider<G>.GetInstruction(InstructionCode.GDR, payload: new object[] { location });
+			sut.Execute(executor, executionState, executionState.StackRegister, executionState.StackPointers);
+
+			Assert.Empty(executionState.StackPointers);
+			Assert.Single(executionState.StackRegister);
+			Assert.Equal(groupValue, executionState.StackRegister[0].Value);
+		}
+
+		[Fact]
+		public void InstructionGDR_Execute_RegisterLocation()
+		{
+			int location = 3;
+			G otherGroupState = Mock.Of<G>();
+			List<G> dependencies = new List<G> { Mock.Of<G>(), Mock.Of<G>(), Mock.Of<G>(), otherGroupState, Mock.Of<G>() };
+			G groupState = Mock.Of<G>(m => m.Dependencies == dependencies);
+			IGroupValue<G> groupValue = Mock.Of<IGroupValue<G>>();
+			IValueProvider<G> valueProvider = Mock.Of<IValueProvider<G>>();
+			Mock.Get(valueProvider).Setup(m => m.GetGroup(otherGroupState)).Returns(groupValue);
+			IInstructionExecutor<G> executor = Mock.Of<IInstructionExecutor<G>>(m => m.ValueProvider == valueProvider);
+			ExecutionState<G> executionState = new ExecutionState<G>(groupState);
+			executionState.StackRegister.Add(new ValuePointer<G> { Value = new DefaultIntValue<G>(location) });
+
+			Instruction<G> sut = InstructionProvider<G>.GetInstruction(InstructionCode.GDR);
 			sut.Execute(executor, executionState, executionState.StackRegister, executionState.StackPointers);
 
 			Assert.Empty(executionState.StackPointers);

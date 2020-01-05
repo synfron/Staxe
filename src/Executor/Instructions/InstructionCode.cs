@@ -199,7 +199,8 @@ namespace Synfron.Staxe.Executor.Instructions
 		GR,
 		/// <summary>
 		/// Group Dependency to Register - Put the group dependency in the register<br /><br />
-		/// Payload: &lt;Dependency index&gt;
+		/// Register: [&lt;Dependency index if no payload&gt;]<br />
+		/// Payload: [&lt;Dependency index&gt;]
 		///</summary>
 		[Instruction(nameof(GDR))]
 		GDR,
@@ -236,13 +237,15 @@ namespace Synfron.Staxe.Executor.Instructions
 		MP,
 		/// <summary>
 		/// Mapped Instruction to Register<br /><br />
-		/// Register: [&lt;group state&gt;] &lt;name&gt;<br /> Payload: [&lt;Use group state from register&gt;]
+		/// Register: [&lt;group state&gt;] &lt;name&gt;<br />
+		/// Payload: [&lt;Use group state from register&gt;]
 		///</summary>
 		[Instruction(nameof(MIR))]
 		MIR,
 		/// <summary>
 		/// Mapped Pointer to Register<br /><br />
-		/// Register: [&lt;group state&gt;] &lt;Group pointer name&gt;<br /> Payload: [&lt;Use group state from register&gt;]
+		/// Register: [&lt;group state&gt;] &lt;Group pointer name&gt;<br />
+		/// Payload: [&lt;Use group state from register&gt;]
 		///</summary>
 		[Instruction(nameof(MPR))]
 		MPR,

@@ -69,7 +69,6 @@ namespace Synfron.Staxe.Generator
 				case InstructionCode.CG:
 				case InstructionCode.MG:
 				case InstructionCode.RM:
-				case InstructionCode.GDR:
 				case InstructionCode.OA:
 				case InstructionCode.RGGPR:
 				case InstructionCode.LRAS:
@@ -88,6 +87,9 @@ namespace Synfron.Staxe.Generator
 				case InstructionCode.RGH:
 				case InstructionCode.HGR:
 				case InstructionCode.VR:
+				case InstructionCode.GDR:
+				case InstructionCode.MPR:
+				case InstructionCode.MIR:
 					WriteObject(binaryWriter, instruction.Payload?.ElementAtOrDefault(0));
 					break;
 				case InstructionCode.CDP:
@@ -194,7 +196,6 @@ namespace Synfron.Staxe.Generator
 				case InstructionCode.CG:
 				case InstructionCode.MG:
 				case InstructionCode.RM:
-				case InstructionCode.GDR:
 				case InstructionCode.OA:
 				case InstructionCode.RGGPR:
 				case InstructionCode.LRAS:
@@ -213,6 +214,9 @@ namespace Synfron.Staxe.Generator
 				case InstructionCode.RGH:
 				case InstructionCode.HGR:
 				case InstructionCode.VR:
+				case InstructionCode.GDR:
+				case InstructionCode.MPR:
+				case InstructionCode.MIR:
 					payload = new object[] { ReadObject(binaryReader) };
 					break;
 				case InstructionCode.CDP:

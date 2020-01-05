@@ -457,8 +457,8 @@ namespace Synfron.Staxe.Executor.Instructions
 
 		private static void ExecuteInstructionGDR(IInstructionExecutor<G> executor, ExecutionState<G> executionState, object[] payload, StackList<ValuePointer<G>> stackRegister, StackList<StackValuePointer<G>> stackPointers)
 		{
-			int location = (int)payload[0];
-			stackRegister.SetLast(new ValuePointer<G> { Value = executor.ValueProvider.GetGroup(executionState.GroupState.Dependencies[location]) });
+			int location = payload?.ElementAtOrDefault(0) is int payloadLocation ? payloadLocation : ((IValue<G, int>)stackRegister.TakeLast().Value).Data;
+			stackRegister.SetLast(executionState.GroupState.Dependencies.ElementAtOrDefault(location) is G groupState ? new ValuePointer<G> { Value = executor.ValueProvider.GetGroup(groupState) } : null);
 		}
 
 
@@ -689,10 +689,10 @@ namespace Synfron.Staxe.Executor.Instructions
 				identity = (IValue<G, string>)stackRegister.Last().Value;
 				groupState = executionState.GroupState;
 			}
-			stackRegister.SetLast(new ValuePointer<G>
+			stackRegister.SetLast(groupState.Group.InstructionMap.TryGetValue(identity.Data, out int location) ? new ValuePointer<G>
 			{
-				Value = executor.ValueProvider.GetInt(groupState.Group.InstructionMap[identity.Data])
-			});
+				Value = executor.ValueProvider.GetInt(location)
+			} : null);
 		}
 
 
