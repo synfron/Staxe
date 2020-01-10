@@ -105,5 +105,7 @@
 | `102` | RAnd | And<br /><br />  Register: &lt;value 1&gt; &lt;value 2&gt;<br /> |
 | `103` | ROr | Or<br /><br />  Register: &lt;value 1&gt; &lt;value 2&gt;<br /> |
 | `104` | RNot | Not<br /><br />  Register: &lt;value 1&gt; |
+| `105` | SIR | Standard In to Register - Read from stdin |
+| `106` | RSO | Register to Standard Out - Write to stdout<br /><br />  Register: &lt;value to write&gt; |
 
 ---

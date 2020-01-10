@@ -142,7 +142,9 @@ namespace Synfron.Staxe.Executor.Instructions
 				 ExecuteInstructionRNotEquals,
 				 ExecuteInstructionRAnd,
 				 ExecuteInstructionROr,
-				 ExecuteInstructionRNot
+				 ExecuteInstructionRNot,
+				 ExecuteInstructionSIR,
+				 ExecuteInstructionRSO
 		};
 
 		public static Instruction<G> GetInstruction(InstructionCode code, object[] payload = null, int? sourcePosition = null, bool interruptable = false)
@@ -1225,6 +1227,17 @@ namespace Synfron.Staxe.Executor.Instructions
 				}
 			}
 			stackRegister.RemoveRange(stackRegister.Count - count, count);
+		}
+
+		private static void ExecuteInstructionRSO(IInstructionExecutor<G> executor, ExecutionState<G> executionState, object[] payload, StackList<ValuePointer<G>> stackRegister, StackList<StackValuePointer<G>> stackPointers)
+		{
+			ValuePointer<G> pointer = stackRegister.TakeLast();
+			Console.Write(pointer?.Value);
+		}
+
+		private static void ExecuteInstructionSIR(IInstructionExecutor<G> executor, ExecutionState<G> executionState, object[] payload, StackList<ValuePointer<G>> stackRegister, StackList<StackValuePointer<G>> stackPointers)
+		{
+			stackRegister.SetLast(new ValuePointer<G> { Value = executor.ValueProvider.GetAsNullableString(Console.ReadLine()) });
 		}
 	}
 }

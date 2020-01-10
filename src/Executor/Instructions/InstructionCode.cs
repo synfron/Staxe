@@ -473,7 +473,7 @@ namespace Synfron.Staxe.Executor.Instructions
 		[Instruction(nameof(CVR))]
 		CVR,
 		/// <summary>
-		/// Register Value ( get entry at) Key - Get pointer from a keyable valuable<br />
+		/// Register Value ( get entry at) Key - Get pointer from a keyable valuable<br /><br />
 		/// Register: &lt;keyable valuable&gt; &lt;key&gt;<br />
 		/// Payload: &lt;create if undefined&gt;
 		///</summary>
@@ -653,6 +653,17 @@ namespace Synfron.Staxe.Executor.Instructions
 		/// Register: &lt;value 1&gt;
 		///</summary>
 		[Instruction("R!")]
-		RNot
+		RNot,
+		/// <summary>
+		/// Standard In to Register - Read from stdin
+		///</summary>
+		[Instruction(nameof(SIR))]
+		SIR,
+		/// <summary>
+		/// Register to Standard Out - Write to stdout<br /><br />
+		/// Register: &lt;value to write&gt;
+		///</summary>
+		[Instruction(nameof(RSO))]
+		RSO
 	}
 }
