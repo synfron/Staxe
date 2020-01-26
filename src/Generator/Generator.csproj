@@ -5,7 +5,7 @@
     <RootNamespace>Synfron.Staxe.Generator</RootNamespace>
     <AssemblyName>Synfron.Staxe.Generator</AssemblyName>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Authors>Daquanne Dwight</Authors>
     <Company>Synfron</Company>
     <Product>Synfron.Staxe.Generator</Product>

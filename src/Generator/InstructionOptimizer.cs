@@ -326,7 +326,12 @@ namespace Synfron.Staxe.Generator
 					case InstructionCode.LE:
 					case InstructionCode.NC:
 					case InstructionCode.AR:
-						instructionPointers.Add(new InstructionPointer(instruction, currentGroupId, groupStartIndex));
+					case InstructionCode.AE:
+					case InstructionCode.OA:
+						instructionPointers.Add(new InstructionPointer(instruction, currentGroupId, groupStartIndex, 0));
+						break;
+					case InstructionCode.MI:
+						instructionPointers.Add(new InstructionPointer(instruction, currentGroupId, groupStartIndex, 1));
 						break;
 				}
 			}
@@ -448,16 +453,13 @@ namespace Synfron.Staxe.Generator
 
 		private class InstructionPointer : IComparable<InstructionPointer>
 		{
-			public InstructionPointer(Instruction<G> instruction, string groupId, int groupStartIndex)
+			public InstructionPointer(Instruction<G> instruction, string groupId, int groupStartIndex, int payloadIndex)
 			{
 				GroupId = groupId;
 				Item = instruction;
 				GroupStartIndex = groupStartIndex;
-				int? payloadLocation = instruction.Payload[0] as int?;
-				if (payloadLocation != null)
-				{
-					Location = payloadLocation;
-				}
+				PayloadIndex = payloadIndex;
+				Location = instruction.Payload?.ElementAtOrDefault(PayloadIndex) as int?;
 			}
 
 			public Instruction<G> Item { get; private set; }
@@ -465,6 +467,8 @@ namespace Synfron.Staxe.Generator
 			public int? Location { get; set; }
 
 			public int GroupStartIndex { get; private set; }
+
+			public int PayloadIndex { get; private set; }
 
 			public int? AbsoluteLocation
 			{
@@ -478,14 +482,14 @@ namespace Synfron.Staxe.Generator
 
 			public int CompareTo(InstructionPointer other)
 			{
-				return Location?.CompareTo(other.Location) ?? -1;
+				return Location == other.Location ? 0 : Location?.CompareTo(other.Location) ?? -1;
 			}
 
 			public void UpdateSource()
 			{
 				if (Location != null)
 				{
-					Item.Payload[0] = Location;
+					Item.Payload[PayloadIndex] = Location;
 				}
 			}
 		}
