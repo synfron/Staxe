@@ -42,7 +42,7 @@ All items must be of the type: `object` with following properties:
 | `end`                    | string  | Optional     |              |
 | `expressionMode`         | string  | Optional     | `"None"`     |
 | `expressionOrder`        | integer | Optional     |              |
-| `fallThrough`            | boolean | Optional     | `false`      |
+| `fallThroughMode`        | string  | Optional     | `"None"`     |
 | `isNoise`                | boolean | Optional     | `false`      |
 | `minMatchedParts`        | integer | Optional     |              |
 | `name`                   | string  | **Required** |              |
@@ -183,6 +183,27 @@ Add the children of this fragment instead of this fragment to the AST
 ##### fallThrough Type
 
 `boolean`
+
+#### fallThroughMode
+
+Add the children of this fragment instead of this fragment to the AST, and discard this fragment.
+
+`fallThroughMode`
+
+- is optional
+- type: `enum`
+- default: `"None"`
+
+The value of this property **must** be equal to one of the [known values below](#fragments-known-values).
+
+##### fallThroughMode Known Values
+
+| Value   | Description                                   |
+| ------- | --------------------------------------------- |
+| `None`  | No fall through                               |
+| `Empty` | Fall through if there are no children         |
+| `One`   | Fall through if there is one or less children |
+| `All`   | Always fall through                           |
 
 #### isNoise
 
@@ -597,5 +618,4 @@ All instances must conform to this regular expression
 "Script"
 ```
 
-
-Generated using [jsonschema2md](<https://github.com/adobe/jsonschema2md>)
+Generated using [jsonschema2md](https://github.com/adobe/jsonschema2md)

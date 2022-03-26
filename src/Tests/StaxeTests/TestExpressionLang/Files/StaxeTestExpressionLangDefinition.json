@@ -3,7 +3,7 @@
   "startingFragment": "ExpressionOrValue",
   "patterns": [
     {
-      "name": "Number",
+      "name": "Num",
       "pattern": "~(\\d*\\.\\d+(e(-|\\+)?\\d+)?|\\d+)"
     },
     {
@@ -68,9 +68,10 @@
       "name": "Number",
       "parts": [
         "[Negative]",
-        "Number"
+        "Num"
       ],
-      "partsMatchMode": "Ordered"
+      "partsMatchMode": "Ordered",
+      "fallThroughMode": "One"
     },
     {
       "name": "Negative",
@@ -79,7 +80,7 @@
       ],
       "partsMatchMode": "One",
       "minMatchedParts": 0,
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "Factorials",
@@ -87,7 +88,8 @@
         "Not"
       ],
       "partsMatchMode": "Multiple",
-      "minMatchedParts": 0
+      "minMatchedParts": 0,
+      "fallThroughMode": "Empty"
     },
     {
       "name": "FactorialMathValuable",
@@ -95,7 +97,8 @@
         "[MathValuable]",
         "[Factorials]"
       ],
-      "partsMatchMode": "Ordered"
+      "partsMatchMode": "Ordered",
+      "fallThroughMode": "One"
     },
     {
       "name": "OperatedMathValuable",
@@ -105,7 +108,7 @@
       ],
       "partsMatchMode": "One",
       "cacheable": true,
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "SquareRootMathValuable",
@@ -134,7 +137,8 @@
       "partsMatchMode": "One",
       "partsPadding": "Whitespace",
       "start": "OpenParens",
-      "end": "CloseParens"
+      "end": "CloseParens",
+      "fallThroughMode": "All"
     },
     {
       "name": "BooleanParensValuable",
@@ -146,7 +150,8 @@
       "partsMatchMode": "One",
       "partsPadding": "Whitespace",
       "start": "OpenParens",
-      "end": "CloseParens"
+      "end": "CloseParens",
+      "fallThroughMode": "All"
     },
     {
       "name": "MathValuable",
@@ -155,7 +160,7 @@
         "[Number]"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "BooleanValuable",
@@ -164,7 +169,7 @@
         "Boolean"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "CoreMathExpression",
@@ -243,7 +248,7 @@
         "[SubtractiveSuffix]"
       ],
       "partsMatchMode": "Multiple",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "MathSuffix",
@@ -256,7 +261,7 @@
         "[SimpleMathOrSuffix]"
       ],
       "partsMatchMode": "Multiple",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "RelationalValuable",
@@ -265,7 +270,7 @@
         "[OperatedMathValuable]"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "RelationalExpression",
@@ -297,7 +302,7 @@
       "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Multiple",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "EqualityValuable",
@@ -308,7 +313,7 @@
         "[OperatedBooleanValuable]"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "EqualityExpression",
@@ -341,7 +346,7 @@
       "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Multiple",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "BooleanOrValuable",
@@ -353,7 +358,7 @@
         "[OperatedBooleanValuable]"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "BooleanOrExpression",
@@ -386,7 +391,7 @@
       "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Multiple",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "BooleanAndValuable",
@@ -396,7 +401,7 @@
         "[OperatedBooleanValuable]"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "BooleanAndExpression",
@@ -429,7 +434,7 @@
       "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Multiple",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "MathOrValuable",
@@ -439,7 +444,7 @@
         "[OperatedMathValuable]"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "MathOrExpression",
@@ -483,7 +488,7 @@
       "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Multiple",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "MathAndValuable",
@@ -492,7 +497,7 @@
         "[OperatedMathValuable]"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "MathAndExpression",
@@ -536,7 +541,7 @@
       "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Multiple",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "BooleanExpression",
@@ -547,7 +552,7 @@
         "[RelationalExpression]"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "ExpressionOrValue",
@@ -558,7 +563,7 @@
         "[OperatedBooleanValuable]"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "Nots",

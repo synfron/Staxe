@@ -141,7 +141,7 @@ namespace Synfron.Staxe.Matcher.Interop.Bnf
 				name: name,
 				partsMatchMode: MatchMode.Multiple,
 				parts: new List<IMatcher> { GetMatcher(name, 1, matchData.Parts[0]) },
-				fallThrough: true
+				fallThroughMode: FallThroughMode.All
 			));
 		}
 
@@ -155,7 +155,7 @@ namespace Synfron.Staxe.Matcher.Interop.Bnf
 				partsMatchMode: MatchMode.One,
 				parts: new List<IMatcher> { GetMatcher(name, 1, matchData.Parts[0]) },
 				minMatchedParts: 0,
-				fallThrough: true
+				fallThroughMode: FallThroughMode.All
 			));
 		}
 
@@ -256,7 +256,7 @@ namespace Synfron.Staxe.Matcher.Interop.Bnf
 				partsMatchMode: MatchMode.Multiple,
 				parts: new List<IMatcher> { GetMatcher(name, 1, matchData.Parts[0]) },
 				minMatchedParts: 0,
-				fallThrough: true
+				fallThroughMode: FallThroughMode.All
 			));
 		}
 
@@ -275,7 +275,7 @@ namespace Synfron.Staxe.Matcher.Interop.Bnf
 				name: name,
 				partsMatchMode: MatchMode.Ordered,
 				parts: parts,
-				fallThrough: true
+				fallThroughMode: FallThroughMode.All
 			));
 		}
 
@@ -297,7 +297,7 @@ namespace Synfron.Staxe.Matcher.Interop.Bnf
 				name: name,
 				partsMatchMode: MatchMode.Ordered,
 				parts: parts,
-				fallThrough: true
+				fallThroughMode: FallThroughMode.All
 			));
 		}
 
@@ -322,7 +322,7 @@ namespace Synfron.Staxe.Matcher.Interop.Bnf
 				name: name,
 				partsMatchMode: MatchMode.One,
 				parts: parts,
-				fallThrough: true
+				fallThroughMode: FallThroughMode.All
 			));
 		}
 

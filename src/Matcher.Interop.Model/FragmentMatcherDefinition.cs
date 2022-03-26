@@ -40,6 +40,9 @@ namespace Synfron.Staxe.Matcher.Interop.Model
 
 		public bool IsNoise { get; set; }
 
+		public FallThroughMode FallThroughMode { get; set; } = FallThroughMode.None;
+
+		[Obsolete("Replaced by FallThroughMode")]
 		public bool FallThrough { get; set; }
 
 		public bool Cacheable { get; set; }

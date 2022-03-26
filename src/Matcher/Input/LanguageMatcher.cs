@@ -73,7 +73,7 @@ namespace Synfron.Staxe.Matcher
 			bool success = false;
             switch (fragmentMatcher) 
             {{
-                {string.Join("\n", Fragments.Where(matcher => !matcher.FallThrough && !matcher.IsNoise).Select(matcher => $@"
+                {string.Join("\n", Fragments.Where(matcher => !matcher.IsNoise).Select(matcher => $@"
                 case ""{HttpUtility.JavaScriptStringEncode(matcher.Name)}"":
                         success = {matcher.Generate(generator)};
                     break;

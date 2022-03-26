@@ -146,120 +146,47 @@ The tests in [StaxeTests](https://github.com/synfron/Staxe/tree/master/src/Tests
                 <AdditiveSuffix>
                     <AdditiveSuffix>
                         <AdditiveSuffix>
-                            <FactorialMathValuable>
-                                <Number>
-                                    <Number>1</Number>
-                                </Number>
-                                <Factorials></Factorials>
-                            </FactorialMathValuable>
+                            <Num>1</Num>
                             <Additive>+</Additive>
-                            <FactorialMathValuable>
-                                <Number>
-                                    <Number>3</Number>
-                                </Number>
-                                <Factorials></Factorials>
-                            </FactorialMathValuable>
+                            <Num>3</Num>
                         </AdditiveSuffix>
                         <Additive>+</Additive>
-                        <FactorialMathValuable>
-                            <Number>
-                                <Number>5</Number>
-                            </Number>
-                            <Factorials></Factorials>
-                        </FactorialMathValuable>
+                        <Num>5</Num>
                     </AdditiveSuffix>
                     <Additive>+</Additive>
                     <MultiplicativeSuffix>
                         <MultiplicativeSuffix>
                             <MultiplicativeSuffix>
-                                <FactorialMathValuable>
-                                    <Number><Number>7</Number>
-                                    </Number>
-                                    <Factorials><Not>!</Not>
-                                    </Factorials>
-                                </FactorialMathValuable>
+                                <Num>7</Num>
                                 <Multiplicative>*</Multiplicative>
-                                <FactorialMathValuable>
-                                    <Number><Number>2</Number>
-                                    </Number>
-                                    <Factorials></Factorials>
-                                </FactorialMathValuable>
+                                <Num>2</Num>
                             </MultiplicativeSuffix>
                             <Multiplicative>*</Multiplicative>
-                            <FactorialMathValuable>
-                                <Number>
-                                    <Number>4</Number>
-                                </Number>
-                                <Factorials></Factorials>
-                            </FactorialMathValuable>
+                            <Num>4</Num>
                         </MultiplicativeSuffix>
                         <Multiplicative>*</Multiplicative>
-                        <FactorialMathValuable>
-                            <Number>
-                                <Number>6</Number>
-                            </Number>
-                            <Factorials></Factorials>
-                        </FactorialMathValuable>
+                        <Num>6</Num>
                     </MultiplicativeSuffix>
                 </AdditiveSuffix>
                 <Additive>+</Additive>
-                <FactorialMathValuable>
-                    <Number>
-                        <Number>9</Number>
-                    </Number>
-                    <Factorials></Factorials>
-                </FactorialMathValuable>
+                <Num>9</Num>
             </AdditiveSuffix>
             <Additive>+</Additive>
-            <ExponentSuffix>
-                <FactorialMathValuable>
-                    <Number>
-                        <Number>11</Number>
-                    </Number>
-                    <Factorials></Factorials>
-                </FactorialMathValuable>
-                <Exponent>^</Exponent>
-                <FactorialMathValuable>
-                    <Number>
-                        <Number>2</Number>
-                    </Number>
-                    <Factorials></Factorials>
-                </FactorialMathValuable>
-            </ExponentSuffix>
+            <Num>11</Num>
         </AdditiveSuffix>
         <Additive>+</Additive>
         <MultiplicativeSuffix>
             <MultiplicativeSuffix>
                 <MultiplicativeSuffix>
-                    <FactorialMathValuable>
-                        <Number>
-                            <Number>13</Number>
-                        </Number>
-                        <Factorials></Factorials>
-                    </FactorialMathValuable>
+                    <Num>13</Num>
                     <Multiplicative>*</Multiplicative>
-                    <FactorialMathValuable>
-                        <Number>
-                            <Number>8</Number>
-                        </Number>
-                        <Factorials></Factorials>
-                    </FactorialMathValuable>
+                    <Num>8</Num>
                 </MultiplicativeSuffix>
                 <Multiplicative>*</Multiplicative>
-                <FactorialMathValuable>
-                    <Number>
-                        <Number>10</Number>
-                    </Number>
-                    <Factorials></Factorials>
-                </FactorialMathValuable>
+                <Num>10</Num>
             </MultiplicativeSuffix>
             <Multiplicative>*</Multiplicative>
-            <FactorialMathValuable>
-                <Number>
-                    <Number>12</Number>
-                </Number>
-                <Factorials></Factorials>
-            </FactorialMathValuable>
+            <Num>12</Num>
         </MultiplicativeSuffix>
     </AdditiveSuffix>
 </MathExpression>
@@ -316,7 +243,7 @@ RPlus
 
 #### Language Code
 ```csharp
-var fibonacci = (n) {
+var fibonacci = $(n) {
     var a = 0;
     var b = 1;
     var i = 0;
@@ -329,7 +256,7 @@ var fibonacci = (n) {
     return a;
 };
 
-var getFib = (n) {
+var getFib = $(n) {
     var i = 0;
     var fibonacciSum = 0;
     while (i < n) {
@@ -346,364 +273,125 @@ getFib(44);
 ```xml
 <Script>
     <DeclarationAssignment>
-        <Identifier>
-            <Identifier>fibonacci</Identifier>
-        </Identifier>
+        <Id>fibonacci</Id>
         <AnonymousFunction>
             <FunctionParameters>
-                <Identifier>
-                    <Identifier>n</Identifier>
-                </Identifier>
+                <Id>n</Id>
             </FunctionParameters>
             <Block>
                 <DeclarationAssignment>
-                    <Identifier>
-                        <Identifier>a</Identifier>
-                    </Identifier>
-                    <Valuable>
-                        <Number>
-                            <Number>0</Number>
-                        </Number>
-                    </Valuable>
+                    <Id>a</Id>
+                    <Num>0</Num>
                 </DeclarationAssignment>
                 <DeclarationAssignment>
-                    <Identifier>
-                        <Identifier>b</Identifier>
-                    </Identifier>
-                    <Valuable>
-                        <Number>
-                            <Number>1</Number>
-                        </Number>
-                    </Valuable>
+                    <Id>b</Id>
+                    <Num>1</Num>
                 </DeclarationAssignment>
                 <DeclarationAssignment>
-                    <Identifier>
-                        <Identifier>i</Identifier>
-                    </Identifier>
-                    <Valuable>
-                        <Number>
-                            <Number>0</Number>
-                        </Number>
-                    </Valuable>
+                    <Id>i</Id>
+                    <Num>0</Num>
                 </DeclarationAssignment>
                 <WhileBlock>
                     <RelationalSuffix>
-                        <Valuable>
-                            <DirectedValuableChain>
-                                <ValuablePrefix></ValuablePrefix>
-                                <ValuableChain>
-                                    <Identifier><Identifier>i</Identifier>
-                                    </Identifier>
-                                </ValuableChain>
-                                <ValuableSuffix></ValuableSuffix>
-                            </DirectedValuableChain>
-                        </Valuable>
+                        <Id>i</Id>
                         <Relational>&lt;</Relational>
-                        <Valuable>
-                            <DirectedValuableChain>
-                                <ValuablePrefix></ValuablePrefix>
-                                <ValuableChain>
-                                    <Identifier><Identifier>n</Identifier>
-                                    </Identifier>
-                                </ValuableChain>
-                                <ValuableSuffix></ValuableSuffix>
-                            </DirectedValuableChain>
-                        </Valuable>
+                        <Id>n</Id>
                     </RelationalSuffix>
                     <Block>
                         <Assignment>
-                            <Valuable>
-                                <DirectedValuableChain>
-                                    <ValuablePrefix></ValuablePrefix>
-                                    <ValuableChain><Identifier><Identifier>i</Identifier>
-                                        </Identifier>
-                                    </ValuableChain>
-                                    <ValuableSuffix></ValuableSuffix>
-                                </DirectedValuableChain>
-                            </Valuable>
+                            <Id>i</Id>
                             <Equal>=</Equal>
                             <AdditiveSuffix>
-                                <Valuable>
-                                    <Number>
-                                        <Number>1</Number>
-                                    </Number>
-                                </Valuable>
+                                <Num>1</Num>
                                 <Additive>+</Additive>
-                                <Valuable>
-                                    <DirectedValuableChain>
-                                        <ValuablePrefix></ValuablePrefix>
-                                        <ValuableChain><Identifier><Identifier>i</Identifier>
-                                            </Identifier>
-                                        </ValuableChain>
-                                        <ValuableSuffix></ValuableSuffix>
-                                    </DirectedValuableChain>
-                                </Valuable>
+                                <Id>i</Id>
                             </AdditiveSuffix>
                         </Assignment>
                         <DeclarationAssignment>
-                            <Identifier>
-                                <Identifier>temp</Identifier>
-                            </Identifier>
-                            <Valuable>
-                                <DirectedValuableChain>
-                                    <ValuablePrefix></ValuablePrefix>
-                                    <ValuableChain>
-                                        <Identifier>
-                                            <Identifier>a</Identifier>
-                                        </Identifier>
-                                    </ValuableChain>
-                                    <ValuableSuffix></ValuableSuffix>
-                                </DirectedValuableChain>
-                            </Valuable>
+                            <Id>temp</Id>
+                            <Id>a</Id>
                         </DeclarationAssignment>
                         <Assignment>
-                            <Valuable>
-                                <DirectedValuableChain>
-                                    <ValuablePrefix></ValuablePrefix>
-                                    <ValuableChain>
-                                        <Identifier>
-                                            <Identifier>a</Identifier>
-                                        </Identifier>
-                                    </ValuableChain>
-                                    <ValuableSuffix></ValuableSuffix>
-                                </DirectedValuableChain>
-                            </Valuable>
+                            <Id>a</Id>
                             <Equal>=</Equal>
-                            <Valuable>
-                                <DirectedValuableChain>
-                                    <ValuablePrefix></ValuablePrefix>
-                                    <ValuableChain>
-                                        <Identifier>
-                                            <Identifier>b</Identifier>
-                                        </Identifier>
-                                    </ValuableChain>
-                                    <ValuableSuffix></ValuableSuffix>
-                                </DirectedValuableChain>
-                            </Valuable>
+                            <Id>b</Id>
                         </Assignment>
                         <Assignment>
-                            <Valuable>
-                                <DirectedValuableChain>
-                                    <ValuablePrefix></ValuablePrefix>
-                                    <ValuableChain>
-                                        <Identifier>
-                                            <Identifier>b</Identifier>
-                                        </Identifier>
-                                    </ValuableChain>
-                                    <ValuableSuffix></ValuableSuffix>
-                                </DirectedValuableChain>
-                            </Valuable>
+                            <Id>b</Id>
                             <Equal>=</Equal>
                             <AdditiveSuffix>
-                                <Valuable>
-                                    <DirectedValuableChain>
-                                        <ValuablePrefix></ValuablePrefix>
-                                        <ValuableChain>
-                                            <Identifier><Identifier>temp</Identifier>
-                                            </Identifier>
-                                        </ValuableChain>
-                                        <ValuableSuffix></ValuableSuffix>
-                                    </DirectedValuableChain>
-                                </Valuable>
+                                <Id>temp</Id>
                                 <Additive>+</Additive>
-                                <Valuable>
-                                    <DirectedValuableChain>
-                                        <ValuablePrefix></ValuablePrefix>
-                                        <ValuableChain>
-                                            <Identifier><Identifier>b</Identifier>
-                                            </Identifier>
-                                        </ValuableChain>
-                                        <ValuableSuffix></ValuableSuffix>
-                                    </DirectedValuableChain>
-                                </Valuable>
+                                <Id>b</Id>
                             </AdditiveSuffix>
                         </Assignment>
                     </Block>
                 </WhileBlock>
                 <ItemReturn>
-                    <Valuable>
-                        <DirectedValuableChain>
-                            <ValuablePrefix></ValuablePrefix>
-                            <ValuableChain>
-                                <Identifier>
-                                    <Identifier>a</Identifier>
-                                </Identifier>
-                            </ValuableChain>
-                            <ValuableSuffix></ValuableSuffix>
-                        </DirectedValuableChain>
-                    </Valuable>
+                    <Id>a</Id>
                 </ItemReturn>
             </Block>
         </AnonymousFunction>
     </DeclarationAssignment>
     <DeclarationAssignment>
-        <Identifier>
-            <Identifier>getFib</Identifier>
-        </Identifier>
+        <Id>getFib</Id>
         <AnonymousFunction>
             <FunctionParameters>
-                <Identifier>
-                    <Identifier>n</Identifier>
-                </Identifier>
+                <Id>n</Id>
             </FunctionParameters>
             <Block>
                 <DeclarationAssignment>
-                    <Identifier>
-                        <Identifier>i</Identifier>
-                    </Identifier>
-                    <Valuable>
-                        <Number>
-                            <Number>0</Number>
-                        </Number>
-                    </Valuable>
+                    <Id>i</Id>
+                    <Num>0</Num>
                 </DeclarationAssignment>
                 <DeclarationAssignment>
-                    <Identifier>
-                        <Identifier>fibonacciSum</Identifier>
-                    </Identifier>
-                    <Valuable>
-                        <Number>
-                            <Number>0</Number>
-                        </Number>
-                    </Valuable>
+                    <Id>fibonacciSum</Id>
+                    <Num>0</Num>
                 </DeclarationAssignment>
                 <WhileBlock>
                     <RelationalSuffix>
-                        <Valuable>
-                            <DirectedValuableChain>
-                                <ValuablePrefix></ValuablePrefix>
-                                <ValuableChain>
-                                    <Identifier>
-                                        <Identifier>i</Identifier>
-                                    </Identifier>
-                                </ValuableChain>
-                                <ValuableSuffix></ValuableSuffix>
-                            </DirectedValuableChain>
-                        </Valuable>
+                        <Id>i</Id>
                         <Relational>&lt;</Relational>
-                        <Valuable>
-                            <DirectedValuableChain>
-                                <ValuablePrefix></ValuablePrefix>
-                                <ValuableChain>
-                                    <Identifier>
-                                        <Identifier>n</Identifier>
-                                    </Identifier>
-                                </ValuableChain>
-                                <ValuableSuffix></ValuableSuffix>
-                            </DirectedValuableChain>
-                        </Valuable>
+                        <Id>n</Id>
                     </RelationalSuffix>
                     <Block>
                         <Assignment>
-                            <Valuable>
-                                <DirectedValuableChain>
-                                    <ValuablePrefix></ValuablePrefix>
-                                    <ValuableChain>
-                                        <Identifier>
-                                            <Identifier>i</Identifier>
-                                        </Identifier>
-                                    </ValuableChain>
-                                    <ValuableSuffix></ValuableSuffix>
-                                </DirectedValuableChain>
-                            </Valuable>
+                            <Id>i</Id>
                             <Equal>=</Equal>
                             <AdditiveSuffix>
-                                <Valuable>
-                                    <DirectedValuableChain>
-                                        <ValuablePrefix></ValuablePrefix>
-                                        <ValuableChain>
-                                            <Identifier><Identifier>i</Identifier>
-                                            </Identifier>
-                                        </ValuableChain>
-                                        <ValuableSuffix></ValuableSuffix>
-                                    </DirectedValuableChain>
-                                </Valuable>
+                                <Id>i</Id>
                                 <Additive>+</Additive>
-                                <Valuable>
-                                    <Number>
-                                        <Number>1</Number>
-                                    </Number>
-                                </Valuable>
+                                <Num>1</Num>
                             </AdditiveSuffix>
                         </Assignment>
                         <Assignment>
-                            <Valuable>
-                                <DirectedValuableChain>
-                                    <ValuablePrefix></ValuablePrefix>
-                                    <ValuableChain>
-                                        <Identifier>
-                                            <Identifier>fibonacciSum</Identifier>
-                                        </Identifier>
-                                    </ValuableChain>
-                                    <ValuableSuffix></ValuableSuffix>
-                                </DirectedValuableChain>
-                            </Valuable>
+                            <Id>fibonacciSum</Id>
                             <Equal>=</Equal>
                             <AdditiveSuffix>
-                                <Valuable>
-                                    <DirectedValuableChain>
-                                        <ValuablePrefix></ValuablePrefix>
-                                        <ValuableChain>
-                                            <Identifier><Identifier>fibonacciSum</Identifier>
-                                            </Identifier>
-                                        </ValuableChain>
-                                        <ValuableSuffix></ValuableSuffix>
-                                    </DirectedValuableChain>
-                                </Valuable>
+                                <Id>fibonacciSum</Id>
                                 <Additive>+</Additive>
-                                <Valuable>
-                                    <DirectedValuableChain>
-                                        <ValuablePrefix></ValuablePrefix>
-                                        <ValuableChain>
-                                            <Identifier><Identifier>fibonacci</Identifier>
-                                            </Identifier>
-                                            <ArgumentValues><Valuable><DirectedValuableChain><ValuablePrefix></ValuablePrefix><ValuableChain><Identifier><Identifier>i</Identifier>
-                                                            </Identifier>
-                                                        </ValuableChain>
-                                                        <ValuableSuffix></ValuableSuffix>
-                                                    </DirectedValuableChain>
-                                                </Valuable>
-                                            </ArgumentValues>
-                                        </ValuableChain>
-                                        <ValuableSuffix></ValuableSuffix>
-                                    </DirectedValuableChain>
-                                </Valuable>
+                                <ValuableChain>
+                                    <Id>fibonacci</Id>
+                                    <ArgumentValues>
+                                        <Id>i</Id>
+                                    </ArgumentValues>
+                                </ValuableChain>
                             </AdditiveSuffix>
                         </Assignment>
                     </Block>
                 </WhileBlock>
                 <ItemReturn>
-                    <Valuable>
-                        <DirectedValuableChain>
-                            <ValuablePrefix></ValuablePrefix>
-                            <ValuableChain>
-                                <Identifier>
-                                    <Identifier>fibonacciSum</Identifier>
-                                </Identifier>
-                            </ValuableChain>
-                            <ValuableSuffix></ValuableSuffix>
-                        </DirectedValuableChain>
-                    </Valuable>
+                    <Id>fibonacciSum</Id>
                 </ItemReturn>
             </Block>
         </AnonymousFunction>
     </DeclarationAssignment>
-    <DirectedValuableChain>
-        <ValuablePrefix></ValuablePrefix>
-        <ValuableChain>
-            <Identifier>
-                <Identifier>getFib</Identifier>
-            </Identifier>
-            <ArgumentValues>
-                <Valuable>
-                    <Number>
-                        <Number>44</Number>
-                    </Number>
-                </Valuable>
-            </ArgumentValues>
-        </ValuableChain>
-        <ValuableSuffix></ValuableSuffix>
-    </DirectedValuableChain>
+    <ValuableChain>
+        <Id>getFib</Id>
+        <ArgumentValues>
+            <Num>44</Num>
+        </ArgumentValues>
+    </ValuableChain>
 </Script>
 ```
 
@@ -876,590 +564,264 @@ var valueRatio = house.getValueRatio();
 ```xml
 <Script>
     <Class>
-        <Identifier>
-            <Identifier>Property</Identifier>
-        </Identifier>
-        <OptionalBaseClassDeclaration></OptionalBaseClassDeclaration>
+        <Id>Property</Id>
+        <OptionalBaseClassDeclaration />
         <ClassBody>
             <PropertyDeclaration>
-                <Identifier>
-                    <Identifier>address</Identifier>
-                </Identifier>
+                <Id>address</Id>
             </PropertyDeclaration>
             <PropertyDeclaration>
-                <Identifier>
-                    <Identifier>value</Identifier>
-                </Identifier>
+                <Id>value</Id>
             </PropertyDeclaration>
             <PropertyDeclaration>
-                <Identifier>
-                    <Identifier>size</Identifier>
-                </Identifier>
+                <Id>size</Id>
             </PropertyDeclaration>
             <Constructor>
                 <FunctionParameters>
-                    <Identifier>
-                        <Identifier>address</Identifier>
-                    </Identifier>
+                    <Id>address</Id>
                 </FunctionParameters>
                 <Block>
                     <Assignment>
-                        <Valuable>
-                            <DirectedValuableChain>
-                                <ValuablePrefix></ValuablePrefix>
-                                <ValuableChain>
-                                    <Self><Self>self</Self>
-                                    </Self>
-                                    <DotIdentifier><Identifier><Identifier>address</Identifier>
-                                        </Identifier>
-                                    </DotIdentifier>
-                                </ValuableChain>
-                                <ValuableSuffix></ValuableSuffix>
-                            </DirectedValuableChain>
-                        </Valuable>
+                        <ValuableChain>
+                            <Self>self</Self>
+                            <DotIdentifier>
+                                <Id>address</Id>
+                            </DotIdentifier>
+                        </ValuableChain>
                         <Equal>=</Equal>
-                        <Valuable>
-                            <DirectedValuableChain>
-                                <ValuablePrefix></ValuablePrefix>
-                                <ValuableChain>
-                                    <Identifier>
-                                        <Identifier>address</Identifier>
-                                    </Identifier>
-                                </ValuableChain>
-                                <ValuableSuffix></ValuableSuffix>
-                            </DirectedValuableChain>
-                        </Valuable>
+                        <Id>address</Id>
                     </Assignment>
                     <Assignment>
-                        <Valuable>
-                            <DirectedValuableChain>
-                                <ValuablePrefix></ValuablePrefix>
-                                <ValuableChain>
-                                    <Identifier>
-                                        <Identifier>value</Identifier>
-                                    </Identifier>
-                                </ValuableChain>
-                                <ValuableSuffix></ValuableSuffix>
-                            </DirectedValuableChain>
-                        </Valuable>
+                        <Id>value</Id>
                         <Equal>=</Equal>
-                        <Valuable>
-                            <Number>
-                                <Number>0</Number>
-                            </Number>
-                        </Valuable>
+                        <Num>0</Num>
                     </Assignment>
                     <Assignment>
-                        <Valuable>
-                            <DirectedValuableChain>
-                                <ValuablePrefix></ValuablePrefix>
-                                <ValuableChain>
-                                    <Identifier>
-                                        <Identifier>size</Identifier>
-                                    </Identifier>
-                                </ValuableChain>
-                                <ValuableSuffix></ValuableSuffix>
-                            </DirectedValuableChain>
-                        </Valuable>
+                        <Id>size</Id>
                         <Equal>=</Equal>
-                        <Valuable>
-                            <Number>
-                                <Number>0</Number>
-                            </Number>
-                        </Valuable>
+                        <Num>0</Num>
                     </Assignment>
                 </Block>
             </Constructor>
             <Function>
-                <Identifier>
-                    <Identifier>getValueRatio</Identifier>
-                </Identifier>
-                <FunctionParameters></FunctionParameters>
+                <Id>getValueRatio</Id>
+                <FunctionParameters />
                 <Block>
                     <IfElseBlock>
                         <IfStatement>
                             <RelationalSuffix>
-                                <Valuable>
-                                    <DirectedValuableChain>
-                                        <ValuablePrefix></ValuablePrefix>
-                                        <ValuableChain><Identifier><Identifier>size</Identifier>
-                                            </Identifier>
-                                        </ValuableChain>
-                                        <ValuableSuffix></ValuableSuffix>
-                                    </DirectedValuableChain>
-                                </Valuable>
+                                <Id>size</Id>
                                 <Relational>&gt;</Relational>
-                                <Valuable>
-                                    <Number>
-                                        <Number>0</Number>
-                                    </Number>
-                                </Valuable>
+                                <Num>0</Num>
                             </RelationalSuffix>
                             <Block>
                                 <ItemReturn>
                                     <MultiplicativeSuffix>
-                                        <Valuable>
-                                            <DirectedValuableChain><ValuablePrefix></ValuablePrefix><ValuableChain><Identifier><Identifier>value</Identifier>
-                                                    </Identifier>
-                                                </ValuableChain>
-                                                <ValuableSuffix></ValuableSuffix>
-                                            </DirectedValuableChain>
-                                        </Valuable>
+                                        <Id>value</Id>
                                         <Multiplicative>/</Multiplicative>
-                                        <Valuable>
-                                            <DirectedValuableChain>
-                                                <ValuablePrefix></ValuablePrefix>
-                                                <ValuableChain>
-                                                    <Identifier><Identifier>size</Identifier>
-                                                    </Identifier>
-                                                </ValuableChain>
-                                                <ValuableSuffix></ValuableSuffix>
-                                            </DirectedValuableChain>
-                                        </Valuable>
+                                        <Id>size</Id>
                                     </MultiplicativeSuffix>
                                 </ItemReturn>
                             </Block>
                         </IfStatement>
                     </IfElseBlock>
                     <ItemReturn>
-                        <Valuable>
-                            <Number>
-                                <Number>0</Number>
-                            </Number>
-                        </Valuable>
+                        <Num>0</Num>
                     </ItemReturn>
                 </Block>
             </Function>
             <Function>
-                <Identifier>
-                    <Identifier>getType</Identifier>
-                </Identifier>
-                <FunctionParameters></FunctionParameters>
+                <Id>getType</Id>
+                <FunctionParameters />
                 <ItemReturn>
-                    <Valuable>
-                        <StringLiteral>&quot;Unknown&quot;</StringLiteral>
-                    </Valuable>
+                    <StringLiteral>"Unknown"</StringLiteral>
                 </ItemReturn>
             </Function>
         </ClassBody>
     </Class>
     <Class>
-        <Identifier>
-            <Identifier>House</Identifier>
-        </Identifier>
+        <Id>House</Id>
         <OptionalBaseClassDeclaration>
-            <Identifier>
-                <Identifier>Property</Identifier>
-            </Identifier>
+            <Id>Property</Id>
         </OptionalBaseClassDeclaration>
         <ClassBody>
             <PropertyDeclaration>
-                <Identifier>
-                    <Identifier>floors</Identifier>
-                </Identifier>
+                <Id>floors</Id>
             </PropertyDeclaration>
             <Constructor>
                 <FunctionParameters>
-                    <Identifier>
-                        <Identifier>address</Identifier>
-                    </Identifier>
+                    <Id>address</Id>
                 </FunctionParameters>
                 <Block>
                     <Assignment>
-                        <Valuable>
-                            <DirectedValuableChain>
-                                <ValuablePrefix></ValuablePrefix>
-                                <ValuableChain>
-                                    <Self>
-                                        <Self>self</Self>
-                                    </Self>
-                                    <DotIdentifier>
-                                        <Identifier>
-                                            <Identifier>address</Identifier>
-                                        </Identifier>
-                                    </DotIdentifier>
-                                </ValuableChain>
-                                <ValuableSuffix></ValuableSuffix>
-                            </DirectedValuableChain>
-                        </Valuable>
+                        <ValuableChain>
+                            <Self>self</Self>
+                            <DotIdentifier>
+                                <Id>address</Id>
+                            </DotIdentifier>
+                        </ValuableChain>
                         <Equal>=</Equal>
-                        <Valuable>
-                            <DirectedValuableChain>
-                                <ValuablePrefix></ValuablePrefix>
-                                <ValuableChain>
-                                    <Identifier>
-                                        <Identifier>address</Identifier>
-                                    </Identifier>
-                                </ValuableChain>
-                                <ValuableSuffix></ValuableSuffix>
-                            </DirectedValuableChain>
-                        </Valuable>
+                        <Id>address</Id>
                     </Assignment>
                     <Assignment>
-                        <Valuable>
-                            <DirectedValuableChain>
-                                <ValuablePrefix></ValuablePrefix>
-                                <ValuableChain>
-                                    <Identifier>
-                                        <Identifier>value</Identifier>
-                                    </Identifier>
-                                </ValuableChain>
-                                <ValuableSuffix></ValuableSuffix>
-                            </DirectedValuableChain>
-                        </Valuable>
+                        <Id>value</Id>
                         <Equal>=</Equal>
-                        <Valuable>
-                            <Number>
-                                <Number>0</Number>
-                            </Number>
-                        </Valuable>
+                        <Num>0</Num>
                     </Assignment>
                     <Assignment>
-                        <Valuable>
-                            <DirectedValuableChain>
-                                <ValuablePrefix></ValuablePrefix>
-                                <ValuableChain>
-                                    <Identifier>
-                                        <Identifier>size</Identifier>
-                                    </Identifier>
-                                </ValuableChain>
-                                <ValuableSuffix></ValuableSuffix>
-                            </DirectedValuableChain>
-                        </Valuable>
+                        <Id>size</Id>
                         <Equal>=</Equal>
-                        <Valuable>
-                            <Number>
-                                <Number>0</Number>
-                            </Number>
-                        </Valuable>
+                        <Num>0</Num>
                     </Assignment>
                     <Assignment>
-                        <Valuable>
-                            <DirectedValuableChain>
-                                <ValuablePrefix></ValuablePrefix>
-                                <ValuableChain>
-                                    <Identifier>
-                                        <Identifier>floors</Identifier>
-                                    </Identifier>
-                                </ValuableChain>
-                                <ValuableSuffix></ValuableSuffix>
-                            </DirectedValuableChain>
-                        </Valuable>
+                        <Id>floors</Id>
                         <Equal>=</Equal>
-                        <Valuable>
-                            <Number>
-                                <Number>1</Number>
-                            </Number>
-                        </Valuable>
+                        <Num>1</Num>
                     </Assignment>
                 </Block>
             </Constructor>
             <Function>
-                <Identifier>
-                    <Identifier>getType</Identifier>
-                </Identifier>
-                <FunctionParameters></FunctionParameters>
+                <Id>getType</Id>
+                <FunctionParameters />
                 <ItemReturn>
-                    <Valuable>
-                        <StringLiteral>&quot;House&quot;</StringLiteral>
-                    </Valuable>
+                    <StringLiteral>"House"</StringLiteral>
                 </ItemReturn>
             </Function>
             <Function>
-                <Identifier>
-                    <Identifier>getSizeRatio</Identifier>
-                </Identifier>
-                <FunctionParameters></FunctionParameters>
+                <Id>getSizeRatio</Id>
+                <FunctionParameters />
                 <Block>
                     <IfElseBlock>
                         <IfStatement>
                             <RelationalSuffix>
-                                <Valuable>
-                                    <DirectedValuableChain>
-                                        <ValuablePrefix></ValuablePrefix>
-                                        <ValuableChain>
-                                            <Identifier>
-                                                <Identifier>getSize</Identifier>
-                                            </Identifier>
-                                            <ArgumentValues></ArgumentValues>
-                                        </ValuableChain>
-                                        <ValuableSuffix></ValuableSuffix>
-                                    </DirectedValuableChain>
-                                </Valuable>
+                                <ValuableChain>
+                                    <Id>getSize</Id>
+                                    <ArgumentValues />
+                                </ValuableChain>
                                 <Relational>&gt;</Relational>
-                                <Valuable>
-                                    <Number>
-                                        <Number>0</Number>
-                                    </Number>
-                                </Valuable>
+                                <Num>0</Num>
                             </RelationalSuffix>
                             <Block>
                                 <ItemReturn>
                                     <MultiplicativeSuffix>
-                                        <Valuable>
-                                            <DirectedValuableChain>
-                                                <ValuablePrefix></ValuablePrefix>
-                                                <ValuableChain>
-                                                    <Identifier><Identifier>getSize</Identifier>
-                                                    </Identifier>
-                                                    <ArgumentValues></ArgumentValues>
-                                                </ValuableChain>
-                                                <ValuableSuffix></ValuableSuffix>
-                                            </DirectedValuableChain>
-                                        </Valuable>
+                                        <ValuableChain>
+                                            <Id>getSize</Id>
+                                            <ArgumentValues />
+                                        </ValuableChain>
                                         <Multiplicative>/</Multiplicative>
-                                        <Valuable>
-                                            <DirectedValuableChain>
-                                                <ValuablePrefix></ValuablePrefix>
-                                                <ValuableChain>
-                                                    <Identifier><Identifier>floors</Identifier>
-                                                    </Identifier>
-                                                </ValuableChain>
-                                                <ValuableSuffix></ValuableSuffix>
-                                            </DirectedValuableChain>
-                                        </Valuable>
+                                        <Id>floors</Id>
                                     </MultiplicativeSuffix>
                                 </ItemReturn>
                             </Block>
                         </IfStatement>
                     </IfElseBlock>
                     <ItemReturn>
-                        <Valuable>
-                            <Number>
-                                <Number>0</Number>
-                            </Number>
-                        </Valuable>
+                        <Num>0</Num>
                     </ItemReturn>
                 </Block>
             </Function>
             <Function>
-                <Identifier>
-                    <Identifier>getSize</Identifier>
-                </Identifier>
-                <FunctionParameters></FunctionParameters>
+                <Id>getSize</Id>
+                <FunctionParameters />
                 <ItemReturn>
-                    <Valuable>
-                        <DirectedValuableChain>
-                            <ValuablePrefix></ValuablePrefix>
-                            <ValuableChain>
-                                <Identifier>
-                                    <Identifier>size</Identifier>
-                                </Identifier>
-                            </ValuableChain>
-                            <ValuableSuffix></ValuableSuffix>
-                        </DirectedValuableChain>
-                    </Valuable>
+                    <Id>size</Id>
                 </ItemReturn>
             </Function>
         </ClassBody>
     </Class>
     <DeclarationAssignment>
-        <Identifier>
-            <Identifier>property</Identifier>
-        </Identifier>
-        <Valuable>
-            <DirectedValuableChain>
-                <ValuablePrefix></ValuablePrefix>
-                <ValuableChain>
-                    <NewInstance>
-                        <Identifier>
-                            <Identifier>Property</Identifier>
-                        </Identifier>
-                        <ArgumentValues>
-                            <Valuable>
-                                <StringLiteral>&quot;45 Grove St&quot;</StringLiteral>
-                            </Valuable>
-                        </ArgumentValues>
-                    </NewInstance>
-                    <SetterBlock>
-                        <SetterAssignment>
-                            <Identifier>
-                                <Identifier>value</Identifier>
-                            </Identifier>
-                            <Valuable>
-                                <Number>
-                                    <Number>15000</Number>
-                                </Number>
-                            </Valuable>
-                        </SetterAssignment>
-                        <SetterAssignment>
-                            <Identifier>
-                                <Identifier>size</Identifier>
-                            </Identifier>
-                            <Valuable>
-                                <Number>
-                                    <Number>2000</Number>
-                                </Number>
-                            </Valuable>
-                        </SetterAssignment>
-                    </SetterBlock>
-                </ValuableChain>
-                <ValuableSuffix></ValuableSuffix>
-            </DirectedValuableChain>
-        </Valuable>
+        <Id>property</Id>
+        <ValuableChain>
+            <NewInstance>
+                <Id>Property</Id>
+                <ArgumentValues>
+                    <StringLiteral>"45 Grove St"</StringLiteral>
+                </ArgumentValues>
+            </NewInstance>
+            <SetterBlock>
+                <SetterAssignment>
+                    <Id>value</Id>
+                    <Num>15000</Num>
+                </SetterAssignment>
+                <SetterAssignment>
+                    <Id>size</Id>
+                    <Num>2000</Num>
+                </SetterAssignment>
+            </SetterBlock>
+        </ValuableChain>
     </DeclarationAssignment>
     <DeclarationAssignment>
-        <Identifier>
-            <Identifier>house</Identifier>
-        </Identifier>
-        <Valuable>
-            <DirectedValuableChain>
-                <ValuablePrefix></ValuablePrefix>
-                <ValuableChain>
-                    <NewInstance>
-                        <Identifier>
-                            <Identifier>House</Identifier>
-                        </Identifier>
-                        <ArgumentValues>
-                            <Valuable>
-                                <StringLiteral>&quot;40 Grove St&quot;</StringLiteral>
-                            </Valuable>
-                        </ArgumentValues>
-                    </NewInstance>
-                    <SetterBlock>
-                        <SetterAssignment>
-                            <Identifier>
-                                <Identifier>value</Identifier>
-                            </Identifier>
-                            <Valuable>
-                                <Number>
-                                    <Number>20000</Number>
-                                </Number>
-                            </Valuable>
-                        </SetterAssignment>
-                        <SetterAssignment>
-                            <Identifier>
-                                <Identifier>size</Identifier>
-                            </Identifier>
-                            <Valuable>
-                                <Number>
-                                    <Number>1000</Number>
-                                </Number>
-                            </Valuable>
-                        </SetterAssignment>
-                        <SetterAssignment>
-                            <Identifier>
-                                <Identifier>floors</Identifier>
-                            </Identifier>
-                            <Valuable>
-                                <Number>
-                                    <Number>2</Number>
-                                </Number>
-                            </Valuable>
-                        </SetterAssignment>
-                    </SetterBlock>
-                </ValuableChain>
-                <ValuableSuffix></ValuableSuffix>
-            </DirectedValuableChain>
-        </Valuable>
+        <Id>house</Id>
+        <ValuableChain>
+            <NewInstance>
+                <Id>House</Id>
+                <ArgumentValues>
+                    <StringLiteral>"40 Grove St"</StringLiteral>
+                </ArgumentValues>
+            </NewInstance>
+            <SetterBlock>
+                <SetterAssignment>
+                    <Id>value</Id>
+                    <Num>20000</Num>
+                </SetterAssignment>
+                <SetterAssignment>
+                    <Id>size</Id>
+                    <Num>1000</Num>
+                </SetterAssignment>
+                <SetterAssignment>
+                    <Id>floors</Id>
+                    <Num>2</Num>
+                </SetterAssignment>
+            </SetterBlock>
+        </ValuableChain>
     </DeclarationAssignment>
     <DeclarationAssignment>
-        <Identifier>
-            <Identifier>houseValue</Identifier>
-        </Identifier>
-        <Valuable>
-            <DirectedValuableChain>
-                <ValuablePrefix></ValuablePrefix>
-                <ValuableChain>
-                    <Identifier>
-                        <Identifier>house</Identifier>
-                    </Identifier>
-                    <DotIdentifier>
-                        <Identifier>
-                            <Identifier>value</Identifier>
-                        </Identifier>
-                    </DotIdentifier>
-                </ValuableChain>
-                <ValuableSuffix></ValuableSuffix>
-            </DirectedValuableChain>
-        </Valuable>
+        <Id>houseValue</Id>
+        <ValuableChain>
+            <Id>house</Id>
+            <DotIdentifier>
+                <Id>value</Id>
+            </DotIdentifier>
+        </ValuableChain>
     </DeclarationAssignment>
     <DeclarationAssignment>
-        <Identifier>
-            <Identifier>propertyValue</Identifier>
-        </Identifier>
-        <Valuable>
-            <DirectedValuableChain>
-                <ValuablePrefix></ValuablePrefix>
-                <ValuableChain>
-                    <Identifier>
-                        <Identifier>property</Identifier>
-                    </Identifier>
-                    <DotIdentifier>
-                        <Identifier>
-                            <Identifier>value</Identifier>
-                        </Identifier>
-                    </DotIdentifier>
-                </ValuableChain>
-                <ValuableSuffix></ValuableSuffix>
-            </DirectedValuableChain>
-        </Valuable>
+        <Id>propertyValue</Id>
+        <ValuableChain>
+            <Id>property</Id>
+            <DotIdentifier>
+                <Id>value</Id>
+            </DotIdentifier>
+        </ValuableChain>
     </DeclarationAssignment>
     <DeclarationAssignment>
-        <Identifier>
-            <Identifier>type</Identifier>
-        </Identifier>
-        <Valuable>
-            <DirectedValuableChain>
-                <ValuablePrefix></ValuablePrefix>
-                <ValuableChain>
-                    <Identifier>
-                        <Identifier>house</Identifier>
-                    </Identifier>
-                    <DotIdentifier>
-                        <Identifier>
-                            <Identifier>getType</Identifier>
-                        </Identifier>
-                    </DotIdentifier>
-                    <ArgumentValues></ArgumentValues>
-                </ValuableChain>
-                <ValuableSuffix></ValuableSuffix>
-            </DirectedValuableChain>
-        </Valuable>
+        <Id>type</Id>
+        <ValuableChain>
+            <Id>house</Id>
+            <DotIdentifier>
+                <Id>getType</Id>
+            </DotIdentifier>
+            <ArgumentValues />
+        </ValuableChain>
     </DeclarationAssignment>
     <DeclarationAssignment>
-        <Identifier>
-            <Identifier>sizeRatio</Identifier>
-        </Identifier>
-        <Valuable>
-            <DirectedValuableChain>
-                <ValuablePrefix></ValuablePrefix>
-                <ValuableChain>
-                    <Identifier>
-                        <Identifier>house</Identifier>
-                    </Identifier>
-                    <DotIdentifier>
-                        <Identifier>
-                            <Identifier>getSizeRatio</Identifier>
-                        </Identifier>
-                    </DotIdentifier>
-                    <ArgumentValues></ArgumentValues>
-                </ValuableChain>
-                <ValuableSuffix></ValuableSuffix>
-            </DirectedValuableChain>
-        </Valuable>
+        <Id>sizeRatio</Id>
+        <ValuableChain>
+            <Id>house</Id>
+            <DotIdentifier>
+                <Id>getSizeRatio</Id>
+            </DotIdentifier>
+            <ArgumentValues />
+        </ValuableChain>
     </DeclarationAssignment>
     <DeclarationAssignment>
-        <Identifier>
-            <Identifier>valueRatio</Identifier>
-        </Identifier>
-        <Valuable>
-            <DirectedValuableChain>
-                <ValuablePrefix></ValuablePrefix>
-                <ValuableChain>
-                    <Identifier>
-                        <Identifier>house</Identifier>
-                    </Identifier>
-                    <DotIdentifier>
-                        <Identifier>
-                            <Identifier>getValueRatio</Identifier>
-                        </Identifier>
-                    </DotIdentifier>
-                    <ArgumentValues></ArgumentValues>
-                </ValuableChain>
-                <ValuableSuffix></ValuableSuffix>
-            </DirectedValuableChain>
-        </Valuable>
+        <Id>valueRatio</Id>
+        <ValuableChain>
+            <Id>house</Id>
+            <DotIdentifier>
+                <Id>getValueRatio</Id>
+            </DotIdentifier>
+            <ArgumentValues />
+        </ValuableChain>
     </DeclarationAssignment>
 </Script>
 ```

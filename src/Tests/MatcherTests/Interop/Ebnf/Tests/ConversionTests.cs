@@ -23,7 +23,7 @@ namespace MatcherTests.Interop.Ebnf.Tests
 			EbnfConverter ebnfConverter = new EbnfConverter();
 			LanguageMatcher languageMatcher = ebnfConverter.Convert("ebnf", ebnf);
 
-			Assert.Equal(numRules, languageMatcher.Fragments.Count(f => !f.FallThrough));
+			Assert.Equal(numRules, languageMatcher.Fragments.Count(f => f.FallThroughMode != FallThroughMode.All));
 
 			string parsable = File.ReadAllText(Path.Combine(fileDirectory, "Parsables", "abc.txt"));
 

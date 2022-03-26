@@ -77,7 +77,7 @@ namespace StaxeTests.Shared.Matcher
 					FragmentMatcher keyValueFragment = new FragmentMatcher(id: 5, name: "KeyValue", parts: new IMatcher[2] { stringLiteralPattern, null }, partsMatchMode: MatchMode.Ordered, partsDelimiter: colonSeparatorPattern);
 					FragmentMatcher objectFragment = new FragmentMatcher(id: 4, name: "Object", parts: new IMatcher[] { keyValueFragment }, partsMatchMode: MatchMode.Multiple, partsDelimiter: commaSeparatorPattern, minMatchedParts: 3, partsPadding: whitespacePattern, start: openBracePattern, end: closeBracePattern);
 					FragmentMatcher arrayFragment = new FragmentMatcher(id: 3, name: "Array", parts: new IMatcher[1], partsMatchMode: MatchMode.Multiple, partsDelimiter: commaSeparatorPattern, minMatchedParts: 0, partsPadding: whitespacePattern, start: openBracketPattern, end: closeBracketPattern);
-					FragmentMatcher itemFragment = new FragmentMatcher(id: 2, name: "Item", parts: new IMatcher[] { objectFragment, arrayFragment, booleanPattern, nullPattern, stringLiteralPattern, numberPattern }, partsMatchMode: MatchMode.One, fallThrough: true);
+					FragmentMatcher itemFragment = new FragmentMatcher(id: 2, name: "Item", parts: new IMatcher[] { objectFragment, arrayFragment, booleanPattern, nullPattern, stringLiteralPattern, numberPattern }, partsMatchMode: MatchMode.One, fallThroughMode: FallThroughMode.All);
 					arrayFragment.Parts[0] = itemFragment;
 					keyValueFragment.Parts[1] = itemFragment;
 					FragmentMatcher jsonFragment = new FragmentMatcher(id: 1, name: "Json", parts: new IMatcher[] { objectFragment, arrayFragment }, partsMatchMode: MatchMode.One, partsPadding: whitespacePattern);

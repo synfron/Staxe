@@ -357,7 +357,7 @@ namespace Synfron.Staxe.Matcher
 				failureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
 			}
 
-			return new MatcherResult(resultMatchData, success, state.CurrentIndex, failureIndex, state.MatchLogBuilder.ToString());
+			return new MatcherResult(resultMatchData, success, state.CurrentIndex, failureIndex, _logMatches ? state.MatchLogBuilder.ToString() : string.Empty);
 		}
 
 		private bool MatchPartByFragmentMatcher(ref State state, FragmentMatchData matchData, FragmentMatcher part)
@@ -388,7 +388,7 @@ namespace Synfron.Staxe.Matcher
 			{
 				if (!part.IsNoise)
 				{
-					if (part.FallThrough)
+					if (part.FallThroughMode == FallThroughMode.All || partMatcherData.Parts.Count <= (int)part.FallThroughMode)
 					{
 						matchData.Parts.AddRange(partMatcherData.Parts);
 					}

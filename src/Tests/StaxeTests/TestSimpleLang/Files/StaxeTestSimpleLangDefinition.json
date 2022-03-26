@@ -44,11 +44,11 @@
       "pattern": "`var"
     },
     {
-      "name": "Identifier",
+      "name": "Id",
       "pattern": "`\\l(\\w|_)*"
     },
     {
-      "name": "Number",
+      "name": "Num",
       "pattern": "~(\\d*\\.\\d+(e(-|\\+)?\\d+)?|\\d+)"
     },
     {
@@ -58,6 +58,10 @@
     {
       "name": "SemiColon",
       "pattern": ";"
+    },
+    {
+      "name": "OpenPesoParens",
+      "pattern": "$\\("
     },
     {
       "name": "OpenParens",
@@ -166,18 +170,20 @@
     {
       "name": "Identifier",
       "parts": [
-        "Identifier"
+        "Id"
       ],
       "partsMatchMode": "One",
+      "fallThroughMode": "All",
       "cacheable": true
     },
     {
       "name": "Number",
       "parts": [
         "[Negative]",
-        "Number"
+        "Num"
       ],
-      "partsMatchMode": "Ordered"
+      "partsMatchMode": "Ordered",
+      "fallThroughMode": "One"
     },
     {
       "name": "Negative",
@@ -186,7 +192,7 @@
       ],
       "partsMatchMode": "One",
       "minMatchedParts": 0,
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "AnonymousFunction",
@@ -219,7 +225,7 @@
       "minMatchedParts": 0,
       "partsMatchMode": "Multiple",
       "partsPadding": "Whitespace",
-      "start": "OpenParens",
+      "start": "OpenPesoParens",
       "end": "CloseParens"
     },
     {
@@ -245,7 +251,7 @@
         "[Statement]"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "IfElseBlock",
@@ -262,23 +268,21 @@
       "name": "OptionalElseIfStatements",
       "parts": [
         "[ElseIfStatement]"
-
       ],
       "MinMatchedParts": 0,
       "partsMatchMode": "Multiple",
       "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "OptionalElseStatement",
       "parts": [
         "[ElseStatement]"
-
       ],
       "MinMatchedParts": 0,
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "ElseIfStatement",
@@ -321,7 +325,7 @@
       "partsPadding": "Whitespace",
       "start": "OpenParens",
       "end": "CloseParens",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "WhileBlock",
@@ -342,7 +346,7 @@
       ],
       "partsMatchMode": "One",
       "minMatchedParts": 1,
-      "fallThrough": true,
+      "fallThroughMode": "All",
       "end": "SemiColon"
     },
     {
@@ -352,7 +356,7 @@
       ],
       "partsMatchMode": "Multiple",
       "minMatchedParts": 0,
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "OpenEndedStatements",
@@ -376,7 +380,7 @@
       ],
       "partsMatchMode": "One",
       "partsPadding": "Whitespace",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "Declaration",
@@ -393,7 +397,7 @@
         "[Valuable]"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "Assignment",
@@ -422,7 +426,7 @@
         "MinusEqual"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "ValuableChain",
@@ -432,7 +436,8 @@
       ],
       "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
-      "partsMatchMode": "Ordered"
+      "partsMatchMode": "Ordered",
+      "fallThroughMode": "One"
     },
     {
       "name": "ValuableChainStart",
@@ -442,7 +447,7 @@
         "[Identifier]"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "Chainable",
@@ -453,7 +458,7 @@
       "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Multiple",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "OptionalChainables",
@@ -464,7 +469,7 @@
       "partsDelimiter": "Whitespace",
       "partsMatchMode": "Multiple",
       "minMatchedParts": 0,
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "ItemReturn",
@@ -482,7 +487,7 @@
         "Return"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true,
+      "fallThroughMode": "All",
       "isNoise": true
     },
     {
@@ -508,6 +513,7 @@
         "[DirectedValuableChain]"
       ],
       "partsMatchMode": "One",
+      "fallThroughMode": "All",
       "cacheable": true
     },
     {
@@ -517,7 +523,8 @@
         "[ValuableChain]",
         "[ValuableSuffix]"
       ],
-      "partsMatchMode": "Ordered"
+      "partsMatchMode": "Ordered",
+      "fallThroughMode": "One"
     },
     {
       "name": "ValuablePrefix",
@@ -527,7 +534,8 @@
         "[Decrement]"
       ],
       "minMatchedParts": 0,
-      "partsMatchMode": "One"
+      "partsMatchMode": "One",
+      "fallThroughMode": "Empty"
     },
     {
       "name": "ValuableSuffix",
@@ -536,7 +544,8 @@
         "[Decrement]"
       ],
       "minMatchedParts": 0,
-      "partsMatchMode": "One"
+      "partsMatchMode": "One",
+      "fallThroughMode": "Empty"
     },
     {
       "name": "Decrement",
@@ -573,7 +582,7 @@
         "[Valuable]"
       ],
       "partsMatchMode": "One",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "Expression",
@@ -583,9 +592,9 @@
       ],
       "partsMatchMode": "Ordered",
       "partsDelimiter": "Whitespace",
-      "fallThrough": true,
       "partsDelimiterRequired": false,
-      "expressionMode": "BinaryTree"
+      "expressionMode": "BinaryTree",
+      "fallThroughMode": "All"
     },
     {
       "name": "ExpressionSuffix",
@@ -601,7 +610,7 @@
         "[BitwiseOrSuffix]"
       ],
       "partsMatchMode": "Multiple",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "MultiplicativeSuffix",
@@ -613,7 +622,6 @@
       "partsMatchMode": "One",
       "boundsAsParts": true,
       "expressionOrder": 1
-
     },
     {
       "name": "AdditiveSuffix",
@@ -739,6 +747,7 @@
       "partsPadding": "Whitespace",
       "start": "OpenBracket",
       "end": "CloseBracket",
+      "fallThroughMode": "All",
       "cacheable": true
     }
   ]

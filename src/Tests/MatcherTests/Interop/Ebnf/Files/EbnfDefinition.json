@@ -116,7 +116,7 @@
       "partsMatchMode": "One",
       "partsPadding": "Whitespace",
       "end": "Is",
-      "fallThrough": true,
+      "fallThroughMode": "All",
       "cacheable": true
     },
     {
@@ -180,7 +180,7 @@
       ],
       "minMatchedParts": 0,
       "partsMatchMode": "Multiple",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "RepetitionSuffix",
@@ -247,7 +247,7 @@
       ],
       "partsMatchMode": "One",
       "partsPadding": "Whitespace",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "ExpressionGroup",
@@ -258,7 +258,7 @@
       "start": "OpenParens",
       "end": "CloseParens",
       "partsPadding": "Whitespace",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "RepetitionGroup",

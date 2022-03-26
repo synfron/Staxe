@@ -199,11 +199,17 @@
                         "description": "Do not add this part to the AST",
                         "default": false
                     },
-                    "fallThrough": {
-                        "$id": "#/properties/fragments/items/properties/fallThrough",
-                        "type": "boolean",
-                        "description": "Add the children of this fragment instead of this fragment to the AST",
-                        "default": false
+                    "fallThroughMode": {
+                        "$id": "#/properties/fragments/items/properties/fallThroughMode",
+                        "type": "string",
+                        "description": "Add the children of this fragment instead of this fragment to the AST, and discard this fragment. Fall through mode: \n\nNone - No fall through; \nEmpty - Fall through if there are no children; \nOne - Fall through if there is one or less child; \nAll - Always fall through;",
+                        "default": "None",
+                        "enum": [
+                            "None",
+                            "Empty",
+                            "One",
+                            "All"
+                        ]
                     },
                     "cacheable": {
                         "$id": "#/properties/fragments/items/properties/cacheable",
@@ -220,7 +226,7 @@
                     "expressionMode": {
                         "$id": "#/properties/fragments/items/properties/expressionMode",
                         "type": "string",
-                        "description": "Experssion parser mode: \n\nNone - No expression parsing; \nBinaryTree - Expression tree to have a max of two child parts per node; \nLikeNameTree - Expression tree combines parts that are the same type;",
+                        "description": "Expression parser mode: \n\nNone - No expression parsing; \nBinaryTree - Expression tree to have a max of two child parts per node; \nLikeNameTree - Expression tree combines parts that are the same type;",
                         "default": "None",
                         "enum": [
                             "None",
@@ -231,7 +237,7 @@
                     "expressionOrder": {
                         "$id": "#/properties/fragments/items/properties/expressionOrder",
                         "type": "integer",
-                        "description": "Expression precendence within parent (lower number is higher precendence)"
+                        "description": "Expression precedence within parent (lower number is higher precedence)"
                     },
                     "boundsAsParts": {
                         "$id": "#/properties/fragments/items/properties/boundsAsParts",

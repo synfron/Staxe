@@ -44,7 +44,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			{
 				AddItem(partMatchData);
 			}
-			if (_reprocessRequiredIndexes.Count > 0)
+			if (_reprocessRequiredIndexes.Count != 0)
 			{
 				throw new LanguageConstraintException("Invalid operation", _reprocessRequiredIndexes.Values.FirstOrDefault()?.FirstOrDefault());
 			}
@@ -92,10 +92,10 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 					AddItemReturn((FragmentMatchData)matchData);
 					break;
 				case "Break":
-					AddBreak((StringMatchData)matchData);
+					AddBreak(matchData);
 					break;
 				case "Continue":
-					AddContinue((StringMatchData)matchData);
+					AddContinue(matchData);
 					break;
 				case "DeclarationAssignment":
 					AddDeclarationAssignment((FragmentMatchData)matchData);
@@ -109,6 +109,9 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 				case "DirectedValuableChain":
 					AddDirectedValuableChain((FragmentMatchData)matchData);
 					break;
+				case "ValuableChain":
+					AddValuableChain((FragmentMatchData)matchData);
+					break;
 				case "NewArray":
 					AddNewArray((FragmentMatchData)matchData);
 					break;
@@ -118,11 +121,8 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 				case "NewInstance":
 					AddNewInstance((FragmentMatchData)matchData);
 					break;
-				case "ParensValuable":
-					AddParensValuable((FragmentMatchData)matchData);
-					break;
-				case "Identifier":
-					AddGetVariable((FragmentMatchData)matchData, interruptable);
+				case "Id":
+					AddGetVariable(matchData, interruptable);
 					break;
 				case "NativeIdentifier":
 					AddNativeIdentifier((FragmentMatchData)matchData);
@@ -146,24 +146,26 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 					AddConstructor((FragmentMatchData)matchData);
 					break;
 				case "Boolean":
-					AddBoolean((StringMatchData)matchData);
+					AddBoolean(matchData);
 					break;
 				case "Null":
-					AddNull((StringMatchData)matchData);
+					AddNull(matchData);
 					break;
 				case "StringLiteral":
-					AddStringLiteral((StringMatchData)matchData);
+					AddStringLiteral(matchData);
 					break;
 				case "Number":
 					AddNumber((FragmentMatchData)matchData);
 					break;
-				case "Valuable":
-				case "Value":
+				case "Num":
+					AddNum(matchData);
+					break;
 				case "OpenEndedStatements":
-					AddInnerItem((FragmentMatchData)matchData);
+				case "ParensValuable":
+					AddInnerItems((FragmentMatchData)matchData);
 					break;
 				case "Self":
-					AddSelf((FragmentMatchData)matchData);
+					AddSelf(matchData);
 					break;
 				case "MultiplicativeSuffix":
 				case "AdditiveSuffix":
@@ -220,7 +222,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 			foreach (GroupInfo classInfo in _namespace.Groups.Values)
 			{
-				if (classInfo.Dependencies.Count > 0)
+				if (classInfo.Dependencies.Count != 0)
 				{
 					AddGetStackVariable($"$c_{classInfo.ShortName}", matchData.StartIndex + matchData.Length, false);
 					foreach (string className in classInfo.Dependencies.OrderBy(entry => entry.Value).Select(entry => entry.Key))
@@ -266,7 +268,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 		private void PreAddStaticClass(FragmentMatchData matchData)
 		{
 			FragmentMatchData classPart = (FragmentMatchData)matchData.Parts[0];
-			string className = GetIdentifierText((FragmentMatchData)classPart.Parts[0]);
+			string className = GetIdentifierText(classPart.Parts[0]);
 			GroupInfo classInfo = new GroupInfo
 			{
 				Namespace = _namespace,
@@ -281,7 +283,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void PreAddClass(FragmentMatchData matchData)
 		{
-			string className = GetIdentifierText((FragmentMatchData)matchData.Parts[0]);
+			string className = GetIdentifierText(matchData.Parts[0]);
 			GroupInfo classInfo = new GroupInfo
 			{
 				Namespace = _namespace,
@@ -295,8 +297,8 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void AddClass(FragmentMatchData matchData, bool isStatic = false, bool isNamespaceChild = false)
 		{
-			string className = GetIdentifierText((FragmentMatchData)matchData.Parts[0]);
-			FragmentMatchData optionalBaseClassDeclaration = (FragmentMatchData)matchData.Parts[1];
+			string className = GetIdentifierText(matchData.Parts[0]);
+			FragmentMatchData baseClassDeclaration = (FragmentMatchData)matchData.Parts[1];
 			FragmentMatchData classBody = (FragmentMatchData)matchData.Parts[2];
 
 			AddGetOrNewStackVariable($"$c_{className}", matchData.StartIndex, false);
@@ -310,7 +312,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 				ShortName = className,
 				Name = className,
 				IsStatic = isStatic,
-				IsSubClass = optionalBaseClassDeclaration.Parts.Count > 0
+				IsSubClass = baseClassDeclaration.Parts.Count != 0
 			};
 			ActionInfo innerAction = new ActionInfo()
 			{
@@ -335,17 +337,17 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			}
 			outerClass.Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RR, sourcePosition: matchData.StartIndex + matchData.Length));
 
-			AddOptionalBaseClassDeclaration(optionalBaseClassDeclaration);
+			AddBaseClassDeclaration(baseClassDeclaration);
 
 			outerClass.Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PLR, sourcePosition: matchData.StartIndex));
 		}
 
-		private void AddOptionalBaseClassDeclaration(FragmentMatchData matchData)
+		private void AddBaseClassDeclaration(FragmentMatchData matchData)
 		{
-			if (matchData.Parts.ElementAtOrDefault(0) is FragmentMatchData identifier)
+			if (matchData.Parts.Count != 0)
 			{
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
-				AddGetClassVariable(identifier, false);
+				AddGetClassVariable(matchData.Parts[0], false);
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.MG, new object[] { (int)(GroupMerge.MapPointers | GroupMerge.OverrideDependencyPointers | GroupMerge.AsComponentDependency | GroupMerge.Dependencies | GroupMerge.CloneNewDependencies) }, sourcePosition: matchData.StartIndex));
 			}
 		}
@@ -358,7 +360,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void AddClassBody(FragmentMatchData matchData)
 		{
-			if (_action.Parent?.Variables.Count > 0)
+			if (_action.Parent?.Variables.Count != 0)
 			{
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.MF, new object[] { 1, (int)(FrameMerge.Register | FrameMerge.Stack) }, sourcePosition: matchData.StartIndex));
 				foreach (KeyValuePair<string, VariableInfo> entry in _action.Parent.Variables)
@@ -438,31 +440,20 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			{
 				throw new LanguageConstraintException("A static class cannot have a constructor", matchData.StartIndex);
 			}
-			FragmentMatchData functionParameters = (FragmentMatchData)matchData.Parts[0];
-			FragmentMatchData body = (FragmentMatchData)matchData.Parts[1];
-
-			AddFunction("", matchData, functionParameters, body);
+			AddFunction("", matchData, (FragmentMatchData)matchData.Parts[0], matchData.Parts[1]);
 		}
 
 		private void PreAddFunction(FragmentMatchData matchData)
 		{
-			FragmentMatchData identifier = (FragmentMatchData)matchData.Parts[0];
-
-			string functionName = GetIdentifierText(identifier);
-			AddNewGroupVariable(functionName, matchData.StartIndex, false);
+			AddNewGroupVariable(GetIdentifierText(matchData.Parts[0]), matchData.StartIndex, false);
 		}
 
 		private void AddFunction(FragmentMatchData matchData)
 		{
-			FragmentMatchData identifier = (FragmentMatchData)matchData.Parts[0];
-			FragmentMatchData functionParameters = (FragmentMatchData)matchData.Parts[1];
-			FragmentMatchData body = (FragmentMatchData)matchData.Parts[2];
-			string functionName = GetIdentifierText(identifier);
-
-			AddFunction(functionName, matchData, functionParameters, body);
+			AddFunction(GetIdentifierText(matchData.Parts[0]), matchData, (FragmentMatchData)matchData.Parts[1], matchData.Parts[2]);
 		}
 
-		private void AddFunction(string functionName, FragmentMatchData matchData, FragmentMatchData functionParameters, FragmentMatchData body)
+		private void AddFunction(string functionName, IMatchData matchData, FragmentMatchData functionParameters, IMatchData body)
 		{
 			int actionStartIndex = Instructions.Count + 3;
 			_class.Actions.Add(functionName, actionStartIndex);
@@ -477,7 +468,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RPM, sourcePosition: matchData.StartIndex));
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.MI, new object[] { functionName, actionStartIndex }, sourcePosition: matchData.StartIndex));
 
-			if (_reprocessRequiredIndexes.Count > 0)
+			if (_reprocessRequiredIndexes.Count != 0)
 			{
 				throw new LanguageConstraintException("Invalid operation", _reprocessRequiredIndexes.Values.FirstOrDefault()?.FirstOrDefault());
 			}
@@ -485,13 +476,10 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void AddAnonymousFunction(FragmentMatchData matchData)
 		{
-			FragmentMatchData functionParameters = (FragmentMatchData)matchData.Parts[0];
-			FragmentMatchData body = (FragmentMatchData)matchData.Parts[1];
-
-			AddFunctionBody(matchData, functionParameters, body, null);
+			AddFunctionBody(matchData, (FragmentMatchData)matchData.Parts[0], matchData.Parts[1], null);
 		}
 
-		private void AddFunctionBody(FragmentMatchData matchData, FragmentMatchData functionParameters, FragmentMatchData body, string functionName)
+		private void AddFunctionBody(IMatchData matchData, FragmentMatchData functionParameters, IMatchData body, string functionName)
 		{
 			ActionInfo innerAction = new ActionInfo
 			{
@@ -512,7 +500,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			Instructions[actionStartIndex - 1] = InstructionProvider<GroupState>.GetInstruction(InstructionCode.J, payload: new object[] { Instructions.Count }, sourcePosition: matchData.StartIndex);
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.AR, payload: new object[] { actionStartIndex }, sourcePosition: matchData.StartIndex));
 
-			if (innerAction.OrderedVariablesFromParent.Count > 0)
+			if (innerAction.OrderedVariablesFromParent.Count != 0)
 			{
 				foreach (string name in innerAction.OrderedVariablesFromParent.Select(variable => variable.Name).Reverse())
 				{
@@ -525,7 +513,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			}
 		}
 
-		private void AddAction(FragmentMatchData matchData, FragmentMatchData functionParameters, FragmentMatchData body)
+		private void AddAction(IMatchData matchData, FragmentMatchData functionParameters, IMatchData body)
 		{
 
 			// Start the declaration of the function
@@ -551,7 +539,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void AddFunctionParameters(FragmentMatchData matchData)
 		{
-			string[] names = matchData.Parts.Select(part => GetIdentifierText((FragmentMatchData)part)).ToArray();
+			string[] names = matchData.Parts.Select(part => GetIdentifierText(part)).ToArray();
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.LRR, new object[] { names.Length, false }, sourcePosition: matchData.StartIndex));
 			List<object> payload = new List<object> { names.Length };
 			foreach (string name in names)
@@ -560,14 +548,14 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 				payload.Add(name);
 				AddParameterVariable(name);
 			}
-			if (matchData.Parts.Count > 0)
+			if (matchData.Parts.Count != 0)
 			{
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RCP, payload.ToArray(), sourcePosition: matchData.StartIndex));
 			}
 		}
 		#endregion
 
-		private void AddSelf(FragmentMatchData matchData)
+		private void AddSelf(IMatchData matchData)
 		{
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.GR, sourcePosition: matchData.StartIndex));
 		}
@@ -575,21 +563,30 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 		private void AddNewFilledArray(FragmentMatchData matchData)
 		{
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CVR, new object[] { false, null }, sourcePosition: matchData.StartIndex));
-			FragmentMatchData arraySetter = (FragmentMatchData)matchData.Parts[0];
-			AddItem(arraySetter);
+			AddItem(matchData.Parts[0]);
 		}
 
-		private void AddInnerItem(FragmentMatchData matchData)
+		private void AddInnerItems(FragmentMatchData matchData)
 		{
-			AddItem(matchData.Parts[0]);
+			if (matchData.Parts.Count == 0)
+			{
+				AddItem(matchData.Parts[0]);
+			}
+			else
+			{
+				foreach (IMatchData part in matchData.Parts)
+				{
+					AddItem(part);
+				}
+			}
 		}
 
 		private void AddArgumentValues(FragmentMatchData matchData)
 		{
-			if (matchData.Parts.Count > 0)
+			if (matchData.Parts.Count != 0)
 			{
 				bool first = true;
-				foreach (FragmentMatchData partMatchData in matchData.Parts)
+				foreach (IMatchData partMatchData in matchData.Parts)
 				{
 					Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: partMatchData.StartIndex));
 					AddItem(partMatchData, first);
@@ -603,25 +600,17 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void AddValuedIndex(FragmentMatchData matchData)
 		{
-			FragmentMatchData evaluable = (FragmentMatchData)matchData.Parts[0];
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
-			AddItem(evaluable);
+			AddItem(matchData.Parts[0]);
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RVK, new object[] { _isAssignmentTarget }, sourcePosition: matchData.StartIndex));
-		}
-
-		private void AddParensValuable(FragmentMatchData matchData)
-		{
-			FragmentMatchData evaluable = (FragmentMatchData)matchData.Parts[0];
-			AddItem(evaluable);
 		}
 
 		private void AddNewArray(FragmentMatchData matchData)
 		{
-			FragmentMatchData arrayInitializer = (FragmentMatchData)matchData.Parts[0];
-			if (arrayInitializer.Parts.ElementAtOrDefault(0) is FragmentMatchData evaluable)
+			if (matchData.Parts.Count != 0)
 			{
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
-				AddItem(evaluable);
+				AddItem(matchData.Parts[0]);
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CVR, new object[] { true, null }, sourcePosition: matchData.StartIndex));
 			}
 			else
@@ -632,19 +621,32 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void AddDirectedValuableChain(FragmentMatchData matchData)
 		{
-			FragmentMatchData valuablePrefix = (FragmentMatchData)matchData.Parts[0];
-			FragmentMatchData valuableChain = (FragmentMatchData)matchData.Parts[1];
-			FragmentMatchData valuableSuffix = (FragmentMatchData)matchData.Parts[2];
-			AddValuableChains(valuableChain);
-			AddValuableSuffix(valuableSuffix);
-			AddValuablePrefix(valuablePrefix);
+			switch (matchData.Parts.Count)
+			{
+				case 1:
+					AddItem(matchData.Parts[0]);
+					break;
+				case 2 when matchData.Parts[0].Name != "ValuablePrefix":
+					AddItem(matchData.Parts[0]);
+					AddValuableSuffix((FragmentMatchData)matchData.Parts[1]);
+					break;
+				case 2:
+					AddItem(matchData.Parts[1]);
+					AddValuablePrefix((FragmentMatchData)matchData.Parts[0]);
+					break;
+				case 3:
+					AddItem(matchData.Parts[1]);
+					AddValuableSuffix((FragmentMatchData)matchData.Parts[2]);
+					AddValuablePrefix((FragmentMatchData)matchData.Parts[0]);
+					break;
+			}
 		}
 
-		private void AddValuableChains(FragmentMatchData matchData)
+		private void AddValuableChain(FragmentMatchData matchData)
 		{
 			int chainSkips = 0;
-			if (matchData.Parts[0] is FragmentMatchData firstPart
-				&& firstPart.Name == "Identifier"
+			IMatchData firstPart = matchData.Parts[0];
+			if (firstPart.Name == "Id"
 				&& GetIdentifierText(firstPart) is string className
 				&& IsClassVariable(className))
 			{
@@ -658,7 +660,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 					throw new LanguageConstraintException($"Invalid access of class '{className}'", matchData.StartIndex);
 				}
 			}
-			foreach (FragmentMatchData partMatchData in matchData.Parts.Skip(chainSkips))
+			foreach (IMatchData partMatchData in matchData.Parts.Skip(chainSkips))
 			{
 				AddItem(partMatchData);
 			}
@@ -671,50 +673,46 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void AddValuablePrefix(FragmentMatchData matchData)
 		{
-			if (matchData.Parts.ElementAtOrDefault(0) is IMatchData partMatchData)
+			IMatchData partMatchData = matchData.Parts[0];
+			switch (partMatchData.Name)
 			{
-				switch (partMatchData.Name)
-				{
-					case "Not":
-						AddNot((FragmentMatchData)partMatchData);
-						break;
-					case "Increment":
-						Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CPHR, sourcePosition: matchData.StartIndex));
-						AddIncrement((StringMatchData)partMatchData);
-						break;
-					case "Decrement":
-						Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CPHR, sourcePosition: matchData.StartIndex));
-						AddDecrement((FragmentMatchData)partMatchData);
-						break;
-				}
+				case "Not":
+					AddNot((FragmentMatchData)partMatchData);
+					break;
+				case "Increment":
+					Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CPHR, sourcePosition: matchData.StartIndex));
+					AddIncrement(partMatchData);
+					break;
+				case "Decrement":
+					Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CPHR, sourcePosition: matchData.StartIndex));
+					AddDecrement(partMatchData);
+					break;
 			}
 		}
 
 		private void AddValuableSuffix(FragmentMatchData matchData)
 		{
-			if (matchData.Parts.ElementAtOrDefault(0) is IMatchData partMatchData)
+			IMatchData partMatchData = matchData.Parts[0];
+			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CPHR, sourcePosition: matchData.StartIndex));
+			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
+			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { null }, sourcePosition: matchData.StartIndex));
+			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RM, new object[] { 1 }, sourcePosition: matchData.StartIndex));
+			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RR, sourcePosition: matchData.StartIndex));
+			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RM, new object[] { 1 }, sourcePosition: matchData.StartIndex));
+			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CPHR, sourcePosition: matchData.StartIndex));
+			switch (partMatchData.Name)
 			{
-				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CPHR, sourcePosition: matchData.StartIndex));
-				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
-				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { null }, sourcePosition: matchData.StartIndex));
-				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RM, new object[] { 1 }, sourcePosition: matchData.StartIndex));
-				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RR, sourcePosition: matchData.StartIndex));
-				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RM, new object[] { 1 }, sourcePosition: matchData.StartIndex));
-				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CPHR, sourcePosition: matchData.StartIndex));
-				switch (partMatchData.Name)
-				{
-					case "Increment":
-						AddIncrement((StringMatchData)partMatchData);
-						break;
-					case "Decrement":
-						AddDecrement((FragmentMatchData)partMatchData);
-						break;
-				}
-				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PLR, sourcePosition: matchData.StartIndex));
+				case "Increment":
+					AddIncrement(partMatchData);
+					break;
+				case "Decrement":
+					AddDecrement(partMatchData);
+					break;
 			}
+			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PLR, sourcePosition: matchData.StartIndex));
 		}
 
-		private void AddDecrement(FragmentMatchData matchData)
+		private void AddDecrement(IMatchData matchData)
 		{
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { 1 }, sourcePosition: matchData.StartIndex));
@@ -722,7 +720,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RR, sourcePosition: matchData.StartIndex));
 		}
 
-		private void AddIncrement(StringMatchData matchData)
+		private void AddIncrement(IMatchData matchData)
 		{
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { 1 }, sourcePosition: matchData.StartIndex));
@@ -732,7 +730,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void AddNot(FragmentMatchData matchData)
 		{
-			foreach (StringMatchData not in matchData.Parts)
+			foreach (IMatchData not in matchData.Parts)
 			{
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RNot, sourcePosition: not.StartIndex));
 			}
@@ -740,12 +738,12 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void AddItemReturn(FragmentMatchData matchData)
 		{
-			if (matchData.Parts.ElementAtOrDefault(0) is FragmentMatchData item)
+			if (matchData.Parts.Count != 0)
 			{
-				AddItem(item, true);
+				AddItem(matchData.Parts[0], true);
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RLR, new object[] { 1 }, sourcePosition: matchData.StartIndex));
 			}
-			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.AE, sourcePosition: matchData.StartIndex, interruptable: matchData.Parts.Count > 0));
+			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.AE, sourcePosition: matchData.StartIndex, interruptable: matchData.Parts.Count != 0));
 		}
 
 		private void AddBlock(FragmentMatchData matchData)
@@ -774,33 +772,32 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 		private void AddArrayBlock(FragmentMatchData matchData)
 		{
 			int index = 0;
-			foreach (FragmentMatchData partMatchData in matchData.Parts)
+			foreach (IMatchData partMatchData in matchData.Parts)
 			{
-				FragmentMatchData evaluable = (FragmentMatchData)partMatchData.Parts[0];
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CPHR, sourcePosition: matchData.StartIndex));
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { index }, sourcePosition: matchData.StartIndex));
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RVK, new object[] { true }, sourcePosition: matchData.StartIndex));
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
-				AddItem(evaluable);
+				AddItem(partMatchData);
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RR, sourcePosition: matchData.StartIndex));
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PLR, sourcePosition: matchData.StartIndex));
 				index++;
 			}
 		}
 
-		private void AddBoolean(StringMatchData matchData)
+		private void AddBoolean(IMatchData matchData)
 		{
 			bool boolValue = bool.Parse(matchData.ToString());
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { boolValue }, sourcePosition: matchData.StartIndex));
 		}
 
-		private void AddNull(StringMatchData matchData)
+		private void AddNull(IMatchData matchData)
 		{
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { null }, sourcePosition: matchData.StartIndex));
 		}
 
-		private void AddStringLiteral(StringMatchData matchData)
+		private void AddStringLiteral(IMatchData matchData)
 		{
 			string literal = matchData.ToString();
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { Regex.Unescape(literal.Substring(1, literal.Length - 2)) }, sourcePosition: matchData.StartIndex));
@@ -812,17 +809,21 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { double.Parse(numberStr) }, sourcePosition: matchData.StartIndex));
 		}
 
+		private void AddNum(IMatchData matchData)
+		{
+			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { double.Parse(matchData.ToString()) }, sourcePosition: matchData.StartIndex));
+		}
+
 		private void AddDotIdentifier(FragmentMatchData matchData)
 		{
-			FragmentMatchData identifier = (FragmentMatchData)matchData.Parts[0];
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
-			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { GetIdentifierText(identifier) }, sourcePosition: matchData.StartIndex));
+			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { GetIdentifierText(matchData.Parts[0]) }, sourcePosition: matchData.StartIndex));
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RVK, new object[] { false }, sourcePosition: matchData.StartIndex));
 		}
 
 		private void AddNewInstance(FragmentMatchData matchData)
 		{
-			FragmentMatchData identifier = (FragmentMatchData)matchData.Parts[0];
+			IMatchData identifier = matchData.Parts[0];
 			FragmentMatchData argumentValues = (FragmentMatchData)matchData.Parts[1];
 
 			AddGetClassVariable(identifier, true);
@@ -831,7 +832,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { (int)Modifiers.Static }, sourcePosition: matchData.StartIndex));
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RGM, sourcePosition: matchData.StartIndex));
 
-			if (argumentValues.Parts.Count > 0)
+			if (argumentValues.Parts.Count != 0)
 			{
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CPHR, sourcePosition: matchData.StartIndex));
 				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
@@ -871,7 +872,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void AddPropertyDeclaration(FragmentMatchData matchData)
 		{
-			string variableName = GetIdentifierText((FragmentMatchData)matchData.Parts[0]);
+			string variableName = GetIdentifierText(matchData.Parts[0]);
 			AddNewGroupVariable(variableName, matchData.StartIndex, false);
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { (int)Modifiers.None }, sourcePosition: matchData.StartIndex));
@@ -884,8 +885,8 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			{
 				throw new LanguageConstraintException("Cannot set default property values on non-static classes", matchData.StartIndex);
 			}
-			FragmentMatchData target = (FragmentMatchData)matchData.Parts[0];
-			FragmentMatchData value = (FragmentMatchData)matchData.Parts[1];
+			IMatchData target = matchData.Parts[0];
+			IMatchData value = matchData.Parts[1];
 			string variableName = GetIdentifierText(target);
 			AddNewGroupVariable(variableName, matchData.StartIndex, false);
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
@@ -899,12 +900,12 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 		private void AddSetterAssignment(FragmentMatchData matchData)
 		{
 			IMatchData setterTarget = matchData.Parts[0];
-			FragmentMatchData evaluable = (FragmentMatchData)matchData.Parts[1];
+			IMatchData evaluable = matchData.Parts[1];
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CPHR, sourcePosition: matchData.StartIndex));
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
-			if (setterTarget.Name == "Identifier")
+			if (setterTarget.Name == "Id")
 			{
-				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { GetIdentifierText((FragmentMatchData)setterTarget) }, sourcePosition: matchData.StartIndex));
+				Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { GetIdentifierText(setterTarget) }, sourcePosition: matchData.StartIndex));
 			}
 			else
 			{
@@ -920,9 +921,8 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 		private void AddAssignment(FragmentMatchData matchData)
 		{
 			_isAssignmentTarget = true;
-			FragmentMatchData target = (FragmentMatchData)matchData.Parts[0];
-			StringMatchData assignmentEqual = (StringMatchData)matchData.Parts[1];
-			FragmentMatchData evaluable = (FragmentMatchData)matchData.Parts[2];
+			IMatchData target = matchData.Parts[0];
+			IMatchData assignmentEqual = matchData.Parts[1];
 			AddItem(target, true);
 			_isAssignmentTarget = false;
 
@@ -937,7 +937,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			}
 
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: target.StartIndex));
-			AddItem(evaluable);
+			AddItem(matchData.Parts[2]);
 
 			switch (assignmentEqual.Name)
 			{
@@ -954,17 +954,15 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void AddDeclaration(FragmentMatchData matchData)
 		{
-			FragmentMatchData target = (FragmentMatchData)matchData.Parts[0];
-			AddNewStackVariable(target);
+			AddNewStackVariable(matchData.Parts[0]);
 		}
 
 		private void AddDeclarationAssignment(FragmentMatchData matchData)
 		{
-			FragmentMatchData target = (FragmentMatchData)matchData.Parts[0];
-			FragmentMatchData evaluable = (FragmentMatchData)matchData.Parts[1];
+			IMatchData target = matchData.Parts[0];
 			AddNewStackVariable(target);
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: target.StartIndex));
-			AddItem(evaluable);
+			AddItem(matchData.Parts[1]);
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.RR, sourcePosition: target.StartIndex));
 		}
 
@@ -972,42 +970,33 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private int AddIfStatement(FragmentMatchData matchData)
 		{
-			FragmentMatchData condition = (FragmentMatchData)matchData.Parts[0];
-			FragmentMatchData body = (FragmentMatchData)matchData.Parts[1];
+			IMatchData condition = matchData.Parts[0];
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CS, sourcePosition: matchData.StartIndex, interruptable: true));
 			AddItem(condition);
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CPHR, sourcePosition: condition.StartIndex));
 			int cbcIndex = Instructions.Count;
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.NC, sourcePosition: condition.StartIndex));
-			AddItem(body);
+			AddItem(matchData.Parts[1]);
 			int endBlockNeededIndex = Instructions.Count;
 			Instructions[cbcIndex] = InstructionProvider<GroupState>.GetInstruction(InstructionCode.NC, new object[] { endBlockNeededIndex + 1 }, sourcePosition: matchData.Parts[1].StartIndex);
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CSE, new object[] { "endif" }, sourcePosition: matchData.StartIndex + matchData.Length));
 			return endBlockNeededIndex;
 		}
 
-		private int AddElseIfStatement(FragmentMatchData matchData)
-		{
-			return AddIfStatement((FragmentMatchData)matchData.Parts[0]);
-		}
-
 		private void AddElseStatement(FragmentMatchData matchData)
 		{
-			AddItem((FragmentMatchData)matchData.Parts[0]);
+			AddItem(matchData.Parts[0]);
 		}
 
 		private void AddIfElseBlock(FragmentMatchData matchData)
 		{
-			List<int> cbes = new List<int>();
+			List<int> cbes = new List<int>(matchData.Parts.Count);
 			foreach (FragmentMatchData partMatchData in matchData.Parts)
 			{
 				switch (partMatchData.Name)
 				{
 					case "IfStatement":
 						cbes.Add(AddIfStatement(partMatchData));
-						break;
-					case "ElseIfStatement":
-						cbes.Add(AddElseIfStatement(partMatchData));
 						break;
 					case "ElseStatement":
 						AddElseStatement(partMatchData);
@@ -1030,21 +1019,18 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 		private void AddForBlock(FragmentMatchData matchData)
 		{
 			FragmentMatchData forParams = (FragmentMatchData)matchData.Parts[0];
-			FragmentMatchData body = (FragmentMatchData)matchData.Parts[1];
-			FragmentMatchData declaration = (FragmentMatchData)forParams.Parts[0];
-			FragmentMatchData condition = (FragmentMatchData)forParams.Parts[1];
-			FragmentMatchData incrementer = (FragmentMatchData)forParams.Parts[2];
+			IMatchData condition = forParams.Parts[1];
 			int origActionStackLocation = _action.ActionStackLocation;
 			_action.BlockDepth++;
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.B, sourcePosition: matchData.StartIndex, interruptable: true));
-			AddItem(declaration);
+			AddItem(forParams.Parts[0]);
 			int reloopIndex = Instructions.Count;
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.L, sourcePosition: matchData.StartIndex));
 			AddItem(condition);
 			int lbcIndex = Instructions.Count;
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.NC, sourcePosition: condition.StartIndex));
-			AddItem(body);
-			AddItem(incrementer);
+			AddItem(matchData.Parts[1]);
+			AddItem(forParams.Parts[2]);
 			int lbeIndex = Instructions.Count;
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.LE, new object[] { reloopIndex }, sourcePosition: matchData.StartIndex + matchData.Length));
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.BE, sourcePosition: matchData.StartIndex + matchData.Length));
@@ -1060,9 +1046,9 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 		{
 			FragmentMatchData forEachDeclaration = (FragmentMatchData)matchData.Parts[0];
 			FragmentMatchData targetDeclaration = (FragmentMatchData)forEachDeclaration.Parts[0];
-			FragmentMatchData source = (FragmentMatchData)forEachDeclaration.Parts[1];
+			IMatchData source = forEachDeclaration.Parts[1];
 			FragmentMatchData body = (FragmentMatchData)matchData.Parts[1];
-			string targetName = GetIdentifierText((FragmentMatchData)targetDeclaration.Parts[0]);
+			string targetName = GetIdentifierText(targetDeclaration.Parts[0]);
 			int origActionStackLocation = _action.ActionStackLocation;
 			_action.BlockDepth++;
 			int id = ++_forEachCount;
@@ -1112,18 +1098,16 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		private void AddWhileBlock(FragmentMatchData matchData)
 		{
-			FragmentMatchData condition = (FragmentMatchData)matchData.Parts[0];
-			FragmentMatchData block = (FragmentMatchData)matchData.Parts[1];
 			int origActionStackLocation = _action.ActionStackLocation;
 			_action.BlockDepth++;
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.B, sourcePosition: matchData.StartIndex));
 			int lbIndex = Instructions.Count;
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.L, sourcePosition: matchData.StartIndex, interruptable: true));
-			AddItem(condition);
+			AddItem(matchData.Parts[0]);
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.CPHR, sourcePosition: matchData.Parts[1].StartIndex));
 			int lbcIndex = Instructions.Count;
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.NC, sourcePosition: matchData.Parts[1].StartIndex));
-			AddItem(block);
+			AddItem(matchData.Parts[1]);
 			int lbeIndex = Instructions.Count;
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.LE, new object[] { lbIndex }, sourcePosition: matchData.StartIndex + matchData.Length));
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.BE, sourcePosition: matchData.StartIndex + matchData.Length));
@@ -1134,14 +1118,14 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			_action.BlockDepth--;
 		}
 
-		private void AddContinue(StringMatchData matchData)
+		private void AddContinue(IMatchData matchData)
 		{
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.US, new object[] { "continue" }, sourcePosition: matchData.StartIndex, interruptable: true));
 			AddReprocessInstruction(InstructionCode.J, Instructions.Count);
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.J, new object[] { "continue" }, sourcePosition: matchData.StartIndex));
 		}
 
-		private void AddBreak(StringMatchData matchData)
+		private void AddBreak(IMatchData matchData)
 		{
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.US, new object[] { "break" }, sourcePosition: matchData.StartIndex, interruptable: true));
 			AddReprocessInstruction(InstructionCode.J, Instructions.Count);
@@ -1151,7 +1135,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 		private void AddExpressionSuffix(FragmentMatchData matchData)
 		{
 			IMatchData operatorData = matchData.Parts[1];
-			AddItem((FragmentMatchData)matchData.Parts[0]);
+			AddItem(matchData.Parts[0]);
 			int? shortcutInstruction = null;
 			switch (operatorData.ToString())
 			{
@@ -1171,7 +1155,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 					break;
 			}
 			Instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.PHR, sourcePosition: matchData.StartIndex));
-			AddItem((FragmentMatchData)matchData.Parts[2]);
+			AddItem(matchData.Parts[2]);
 			switch (operatorData.ToString())
 			{
 				case ">":
@@ -1250,7 +1234,7 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 
 		#region Add variable
 
-		private void AddGetClassVariable(FragmentMatchData matchData, bool interruptable = false)
+		private void AddGetClassVariable(IMatchData matchData, bool interruptable = false)
 		{
 			string variableName = GetIdentifierText(matchData);
 			if (_namespace?.Groups.ContainsKey(variableName) ?? false)
@@ -1280,10 +1264,9 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			}
 		}
 
-		private void AddGetVariable(FragmentMatchData matchData, bool interruptable = false)
+		private void AddGetVariable(IMatchData matchData, bool interruptable = false)
 		{
-			string variableName = GetIdentifierText(matchData);
-			AddGetVariable(variableName, matchData.StartIndex, interruptable);
+			AddGetVariable(GetIdentifierText(matchData), matchData.StartIndex, interruptable);
 		}
 
 		private void AddGetVariable(string variableName, int startIndex, bool interruptable)
@@ -1331,10 +1314,10 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 			}
 		}
 
-		private void AddNewStackVariable(FragmentMatchData fragmentMatchData)
+		private void AddNewStackVariable(IMatchData matchData)
 		{
-			string name = GetIdentifierText(fragmentMatchData);
-			AddNewStackVariable(name, fragmentMatchData.StartIndex, true);
+			string name = GetIdentifierText(matchData);
+			AddNewStackVariable(name, matchData.StartIndex, true);
 		}
 
 		private void AddNewStackVariable(string name, int startIndex, bool interruptable)
@@ -1380,6 +1363,11 @@ namespace StaxeTests.TestComplexLang.Engine.Generator
 		private string GetIdentifierText(FragmentMatchData matchData)
 		{
 			return matchData.Parts[0].ToString();
+		}
+
+		private string GetIdentifierText(IMatchData matchData)
+		{
+			return matchData.ToString();
 		}
 
 		private string GetNamespaceIdentifier(FragmentMatchData matchData)

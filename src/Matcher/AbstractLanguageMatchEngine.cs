@@ -79,8 +79,8 @@ namespace Synfron.Staxe.Matcher
 				if (partInfo.ExpressionOrder != null)
 				{
 					FragmentMatchData fragment = (FragmentMatchData)partInfo.Part;
-					fragment.Parts.Insert(0, partInfo.Previous.Part);
 					fragment.Parts.Add(partInfo.Next.Part);
+					fragment.Parts.Insert(0, partInfo.Previous.Part);
 					if (partInfo.Previous.Previous is ExpressionPartInfo newPreviousPartInfo)
 					{
 						newPreviousPartInfo.Next = partInfo;
@@ -134,13 +134,13 @@ namespace Synfron.Staxe.Matcher
 		protected IEnumerable<ExpressionPartInfo> ExtractExpressionParts(FragmentMatchData matchData)
 		{
 			ExpressionPartInfo partInfo = null;
-			foreach (FragmentMatchData partMatchData in matchData.Parts.Cast<FragmentMatchData>())
+			foreach (IMatchData partMatchData in matchData.Parts)
 			{
 				ExpressionPartInfo oldPartInfo = partInfo;
 				partInfo = new ExpressionPartInfo
 				{
 					Previous = partInfo,
-					ExpressionOrder = partMatchData.ExpressionOrder,
+					ExpressionOrder = (partMatchData as FragmentMatchData)?.ExpressionOrder,
 					Part = partMatchData
 				};
 				if (oldPartInfo != null)

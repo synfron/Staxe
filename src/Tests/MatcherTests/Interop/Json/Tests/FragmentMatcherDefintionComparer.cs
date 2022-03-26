@@ -17,7 +17,7 @@ namespace MatcherTests.Interop.Model.Tests
 				&& x.End == y.End
 				&& x.ExpressionMode == y.ExpressionMode
 				&& x.ExpressionOrder == y.ExpressionOrder
-				&& x.FallThrough == y.FallThrough
+				&& x.FallThroughMode == y.FallThroughMode
 				&& x.IsNoise == y.IsNoise
 				&& x.MinMatchedParts == y.MinMatchedParts
 				&& x.Name == y.Name

@@ -24,7 +24,7 @@ namespace Synfron.Staxe.Matcher.Input
 			int? minMatchedParts = default,
 			MatchMode partsMatchMode = default,
 			bool isNoise = default,
-			bool fallThrough = default,
+			FallThroughMode fallThroughMode = FallThroughMode.None,
 			bool cacheable = default,
 			bool clearCache = default,
 			ExpressionMode expressionMode = default,
@@ -45,7 +45,7 @@ namespace Synfron.Staxe.Matcher.Input
 			MinMatchedParts = minMatchedParts;
 			PartsMatchMode = partsMatchMode;
 			IsNoise = isNoise;
-			FallThrough = fallThrough;
+			FallThroughMode = fallThroughMode;
 			Cacheable = cacheable;
 			ClearCache = clearCache;
 			ExpressionMode = expressionMode;
@@ -79,7 +79,7 @@ namespace Synfron.Staxe.Matcher.Input
 
 		public bool IsNoise { get; set; }
 
-		public bool FallThrough { get; set; }
+		public FallThroughMode FallThroughMode { get; set; } = FallThroughMode.None;
 
 		public bool Cacheable { get; set; }
 
@@ -395,8 +395,16 @@ namespace Synfron.Staxe.Matcher.Input
 			}}" : null)}
             {(!Negate ? $@"if (success)
             {{
-				{(!IsNoise && FallThrough ? "matchData.Parts.AddRange(partMatcherData.Parts);" : null)}
-				{(!IsNoise && !FallThrough ? "matchData.Parts.Add(partMatcherData);" : null)}
+				{(!IsNoise && FallThroughMode == FallThroughMode.All ? "matchData.Parts.AddRange(partMatcherData.Parts);" : null)}
+				{(!IsNoise && FallThroughMode == FallThroughMode.None ? "matchData.Parts.Add(partMatcherData);" : null)}
+				{(!IsNoise && FallThroughMode != FallThroughMode.None && FallThroughMode != FallThroughMode.All ? $@"if (partMatcherData.Parts.Count <= {(int)FallThroughMode})
+				{{ 
+					matchData.Parts.AddRange(partMatcherData.Parts);
+				}}
+				else
+				{{
+					matchData.Parts.Add(partMatcherData);
+				}}" : null)}
 				{(ClearCache ? "state.MatchCache.Clear();" : null)}
 			}}" : null)}
             {(generator.LanguageMatcher.LogMatches ? $@"state.MatchLogBuilder.AppendLine($""{{new String('\t', currentId)}} {{state.CurrentIndex}}. {{({(Negate ? "!" : null)}success ? ""Passed"" : ""Failed"")}}: {GetEscapedName()}"");

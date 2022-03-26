@@ -26,7 +26,7 @@ namespace StaxeTests.TestExpressionLang.Engine.Generator
 			AddItem(matchData.Parts[0]);
 		}
 
-		private void AddBoolean(StringMatchData matchData)
+		private void AddBoolean(IMatchData matchData)
 		{
 			bool boolValue = bool.Parse(matchData.ToString());
 			_instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { boolValue }, sourcePosition: matchData.StartIndex));
@@ -43,10 +43,9 @@ namespace StaxeTests.TestExpressionLang.Engine.Generator
 			_instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { numberObj }, sourcePosition: matchData.StartIndex));
 		}
 
-		private void AddParensValuable(FragmentMatchData matchData)
+		private void AddNum(IMatchData matchData)
 		{
-			FragmentMatchData evaluable = (FragmentMatchData)matchData.Parts[0];
-			AddItem(evaluable);
+			_instructions.Add(InstructionProvider<GroupState>.GetInstruction(InstructionCode.VR, new object[] { double.Parse(matchData.ToString()) }, sourcePosition: matchData.StartIndex));
 		}
 
 		private void AddOperatedBooleanValuable(FragmentMatchData matchData)
@@ -127,17 +126,15 @@ namespace StaxeTests.TestExpressionLang.Engine.Generator
 		{
 			switch (matchData.Name)
 			{
-				case "MathParensValuable":
-				case "BooleanParensValuable":
-					AddParensValuable((FragmentMatchData)matchData);
-					break;
 				case "Boolean":
-					AddBoolean((StringMatchData)matchData);
+					AddBoolean(matchData);
 					break;
 				case "Number":
 					AddNumber((FragmentMatchData)matchData);
 					break;
-				case "OperatedMathValuable":
+				case "Num":
+					AddNum(matchData);
+					break;
 				case "MathExpression":
 				case "RelationalExpression":
 				case "EqualityExpression":

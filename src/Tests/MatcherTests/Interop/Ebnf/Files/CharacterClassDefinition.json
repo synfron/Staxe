@@ -37,7 +37,7 @@
       "partsMatchMode": "One",
       "start": "OpenBracket",
       "end": "CloseBracket",
-      "fallThrough": true
+      "fallThroughMode": "All"
     },
     {
       "name": "NotCharacterClassBody",
