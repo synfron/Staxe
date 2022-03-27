@@ -42,7 +42,7 @@ namespace Synfron.Staxe.Matcher.Interop.Model
 
 		public FallThroughMode FallThroughMode { get; set; } = FallThroughMode.None;
 
-		[Obsolete("Replaced by FallThroughMode")]
+		[Obsolete("Replaced by FallThroughMode", true)]
 		public bool FallThrough { get; set; }
 
 		public bool Cacheable { get; set; }

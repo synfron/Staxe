@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>Synfron.Staxe.Matcher</RootNamespace>
     <AssemblyName>Synfron.Staxe.Matcher</AssemblyName>
-    <Version>1.0.1</Version>
+    <Version>2.0.0</Version>
     <Authors>Daquanne Dwight</Authors>
     <Company>Synfron</Company>
     <Copyright>© Daquanne Dwight</Copyright>
