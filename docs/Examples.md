@@ -3,16 +3,18 @@
 The tests in [StaxeTests](https://github.com/synfron/Staxe/tree/master/src/Tests/StaxeTests) provide various examples of using the Staxe.Matcher, Staxe.Generator, and Staxe.Executor libraries to build languages with a variety of features.
 
 ## JSON Parser
-[Grammar](https://github.com/synfron/Staxe/blob/master/src/Tests/StaxeTests/Shared/Matcher/LanguageMatcherProvider.cs#L59)
+
+[Code-Based Grammar](https://github.com/synfron/Staxe/blob/master/src/Tests/StaxeTests/Shared/Matcher/LanguageMatcherProvider.cs#L59), [JSON-Based Grammar](https://github.com/synfron/Staxe/blob/master/src/Tests/StaxeTests/TestJsonParser/Files/JsonLanguageDefinition.json)
 
 ### Features
+
 - Provides similar feature to System.Json.JsonValue derived classes
 - Library Usages: Staxe.Matcher
 
-
-### Sample 
+### Sample
 
 #### Language Code
+
 ```json
 {
   "firstName": "John",
@@ -23,7 +25,7 @@ The tests in [StaxeTests](https://github.com/synfron/Staxe/tree/master/src/Tests
     "city": "New York",
     "state": "NY",
     "postalCode": "10021",
-    "owner":  true
+    "owner": true
   },
   "phoneNumber": [
     {
@@ -42,6 +44,7 @@ The tests in [StaxeTests](https://github.com/synfron/Staxe/tree/master/src/Tests
 ```
 
 #### Matcher Output (AST)
+
 ```xml
 <Json>
     <Object>
@@ -120,12 +123,13 @@ The tests in [StaxeTests](https://github.com/synfron/Staxe/tree/master/src/Tests
 </Json>
 ```
 
-
 ## Expression Language
+
 [Grammar](https://github.com/synfron/Staxe/blob/master/src/Tests/StaxeTests/TestExpressionLang/Files/StaxeTestExpressionLangDefinition.json)<br />
 [Instruction Generator](https://github.com/synfron/Staxe/blob/master/src/Tests/StaxeTests/TestExpressionLang/Engine/Generator/InstructionGenerator.cs)
 
 ### Features
+
 - Custom Instructions
 - Restrict operators between Booleans and Numbers
 - Library Usages: Staxe.Matcher, Staxe.Generator, Staxe.Executor
@@ -133,11 +137,13 @@ The tests in [StaxeTests](https://github.com/synfron/Staxe/tree/master/src/Tests
 ### Sample
 
 #### Language Code
+
 ```
 1 + 3 + 5 + 7! * 2 * 4 * 6 + 9 + 11^2 + 13 * 8 * 10 * 12
 ```
 
 #### Matcher Output (AST)
+
 ```xml
 <MathExpression>
     <AdditiveSuffix>
@@ -193,47 +199,50 @@ The tests in [StaxeTests](https://github.com/synfron/Staxe/tree/master/src/Tests
 ```
 
 #### Optimized Instructions
+
 ```
 CPR 0, 2, vr, 1, vr, 3
-RPlus 
-PHR 
+RPlus
+PHR
 VR 5
-RPlus 
-PHR 
+RPlus
+PHR
 VR 7
 SPL "RFAC"
-PHR 
+PHR
 VR 2
-RMultiply 
-PHR 
+RMultiply
+PHR
 VR 4
-RMultiply 
-PHR 
+RMultiply
+PHR
 VR 6
-RMultiply 
-RPlus 
-PHR 
+RMultiply
+RPlus
+PHR
 VR 9
-RPlus 
+RPlus
 CPR 0, 2, vr, 11, vr, 2
 SPL "RPOW"
-RPlus 
+RPlus
 CPR 0, 2, vr, 13, vr, 8
-RMultiply 
-PHR 
+RMultiply
+PHR
 VR 10
-RMultiply 
-PHR 
+RMultiply
+PHR
 VR 12
-RMultiply 
+RMultiply
 RPlus
 ```
 
 ## Simple Language
+
 [Grammar](https://github.com/synfron/Staxe/blob/master/src/Tests/StaxeTests/TestSimpleLang/Files/StaxeTestSimpleLangDefinition.json)<br />
 [Instruction Generator](https://github.com/synfron/Staxe/blob/master/src/Tests/StaxeTests/TestSimpleLang/Engine/Generator/InstructionGenerator.cs)
 
 ### Features
+
 - Closures
 - First-class functions
 - Simplified number handling
@@ -242,6 +251,7 @@ RPlus
 ### Sample
 
 #### Language Code
+
 ```csharp
 var fibonacci = $(n) {
     var a = 0;
@@ -270,6 +280,7 @@ getFib(44);
 ```
 
 #### Matcher Output (AST)
+
 ```xml
 <Script>
     <DeclarationAssignment>
@@ -399,95 +410,97 @@ getFib(44);
 
 ```
 CSP "fibonacci"
-PHR 
+PHR
 J 33
 A false
 LRR 1, false
 RCP 1, csp, "n"
-B 
+B
 VCSP 0, "a"
 VCSP 1, "b"
 VCSP 0, "i"
-B 
-L 
+B
+L
 CPR -1, 2, spr, 0, spr, 3
-RLessThan 
-CPHR 
+RLessThan
+CPHR
 NC 27
-B 
+B
 CPR -1, 3, spr, 0, vr, 1, spr, 0
-RPlus 
-RR 
+RPlus
+RR
 SPCSP 3, "temp"
 SPSP 2, 3
 CPR -1, 3, spr, 2, spr, 0, spr, 2
-RPlus 
-RR 
-BE 
+RPlus
+RR
+BE
 LE 11
-BE 
+BE
 SPR 2
 RLR 1
-AE 
-BE 
-AE 
+AE
+BE
+AE
 AR 3
-RR 
+RR
 CSP "getFib"
-PHR 
+PHR
 J 73
 A false
 LRR 1, false
 RCP 1, csp, "n"
-B 
+B
 VCSP 0, "i"
 VCSP 0, "fibonacciSum"
-B 
-L 
+B
+L
 CPR -1, 2, spr, 1, spr, 2
-RLessThan 
-CPHR 
+RLessThan
+CPHR
 NC 67
-B 
+B
 SPR 1
-CPHR 
-PHR 
+CPHR
+PHR
 VR 1
-RPlus 
-RR 
+RPlus
+RR
 SPR 0
-CPHR 
+CPHR
 CPR 0, 2, spr, 3, spr, 1
 RLR 1
-RCE 
+RCE
 LRR 1, false
-RPlus 
-RR 
-BE 
+RPlus
+RR
+BE
 LE 45
-BE 
+BE
 SPR 0
 RLR 1
-AE 
-BE 
-AE 
+AE
+BE
+AE
 AR 38
-PHR 
+PHR
 SPR 1
 RLR 1
 LRAS 1
-RR 
+RR
 CPR -1, 2, spr, 0, vr, 44
 RLR 1
-RCE 
+RCE
 LRR 1, false
 ```
 
 ## Complex Language
+
 [Grammar](https://github.com/synfron/Staxe/blob/master/src/Tests/StaxeTests/TestComplexLang/Files/StaxeTestComplexLangDefinition.json)<br />
 [Instruction Generator](https://github.com/synfron/Staxe/blob/master/src/Tests/StaxeTests/TestComplexLang/Engine/Generator/InstructionGenerator.cs)
 
 ### Features
+
 - Static and Non-Static Classes
 - Inheritance
 - Closures
@@ -499,6 +512,7 @@ LRR 1, false
 ### Sample
 
 #### Language Code
+
 ```csharp
 class Property {
 	address;
@@ -510,7 +524,7 @@ class Property {
 		value = 0;
 		size = 0;
 	}
-	
+
 	getValueRatio() {
 		if (size > 0) {
 			return value / size;
@@ -531,8 +545,8 @@ class House : Property {
 		floors = 1;
 	}
 
-	getType() => ""House"";	
-	
+	getType() => ""House"";
+
 	getSizeRatio() {
 		if (getSize() > 0) {
 			return getSize() / floors;
@@ -561,6 +575,7 @@ var valueRatio = house.getValueRatio();
 ```
 
 #### Matcher Output (AST)
+
 ```xml
 <Script>
     <Class>
@@ -827,30 +842,31 @@ var valueRatio = house.getValueRatio();
 ```
 
 #### Optimized Instructions
+
 ```
 CSP "$c_Property"
-PHR 
+PHR
 G "Property"
 MF 1, 3
-GR 
-PHR 
+GR
+PHR
 VR 16
-RGM 
+RGM
 MP "address", 0
 CGP "address"
-PHR 
+PHR
 VR 0
-RPM 
+RPM
 MP "value", 1
 CGP "value"
-PHR 
+PHR
 VR 0
-RPM 
+RPM
 MP "size", 2
 CGP "size"
-PHR 
+PHR
 VR 0
-RPM 
+RPM
 MP "", 3
 CGP ""
 MP "getValueRatio", 4
@@ -858,85 +874,85 @@ CGP "getValueRatio"
 MP "getType", 5
 CGP "getType"
 GPR 3
-PHR 
+PHR
 J 44
 A false
 LRR 1, false
 RCP 1, csp, "address"
-B 
-GR 
-PHR 
+B
+GR
+PHR
 VR "address"
 RVK false
-PHR 
+PHR
 SPR 0
-RR 
+RR
 VGP 0, 1
 VGP 0, 2
-BE 
-AE 
+BE
+AE
 AR 29
-RR 
-PHR 
+RR
+PHR
 VR 20
-RPM 
+RPM
 GPR 4
-PHR 
+PHR
 J 71
 A false
-B 
-CS 
+B
+CS
 CPR -1, 2, gpr, 2, vr, 0
-RGreaterThan 
-CPHR 
+RGreaterThan
+CPHR
 NC 66
-B 
+B
 CPR -1, 2, gpr, 1, gpr, 2
-RDivide 
+RDivide
 RLR 1
-AE 
-BE 
+AE
+BE
 CSE 66
 VR 0
 RLR 1
-AE 
-BE 
-AE 
+AE
+BE
+AE
 AR 52
-RR 
-PHR 
+RR
+PHR
 VR 20
-RPM 
+RPM
 GPR 5
-PHR 
+PHR
 J 84
 A false
 VR "Unknown"
 RLR 1
-AE 
-AE 
+AE
+AE
 AR 79
-RR 
-PHR 
+RR
+PHR
 VR 20
-RPM 
-CR 
-GE 
-RR 
-PLR 
+RPM
+CR
+GE
+RR
+PLR
 CSP "$c_House"
-PHR 
+PHR
 G "House"
 MF 1, 3
-GR 
-PHR 
+GR
+PHR
 VR 16
-RGM 
+RGM
 MP "floors", 0
 CGP "floors"
-PHR 
+PHR
 VR 0
-RPM 
+RPM
 MP "", 1
 CGP ""
 MP "getType", 2
@@ -946,206 +962,206 @@ CGP "getSizeRatio"
 MP "getSize", 4
 CGP "getSize"
 GPR 1
-PHR 
+PHR
 J 45
 A false
 LRR 1, false
 RCP 1, csp, "address"
-B 
-GR 
-PHR 
+B
+GR
+PHR
 VR "address"
 RVK false
-PHR 
+PHR
 SPR 0
-RR 
+RR
 VR "value"
-MPR 
-PHR 
+MPR
+PHR
 VR 0
-RR 
+RR
 VR "size"
-MPR 
-PHR 
+MPR
+PHR
 VR 0
-RR 
+RR
 VGP 1, 0
-BE 
-AE 
+BE
+AE
 AR 21
-RR 
-PHR 
+RR
+PHR
 VR 20
-RPM 
+RPM
 GPR 2
-PHR 
+PHR
 J 58
 A false
 VR "House"
 RLR 1
-AE 
-AE 
+AE
+AE
 AR 53
-RR 
-PHR 
+RR
+PHR
 VR 20
-RPM 
+RPM
 GPR 3
-PHR 
+PHR
 J 93
 A false
-B 
-CS 
+B
+CS
 GPR 4
-RCE 
+RCE
 LRR 1, false
-PHR 
+PHR
 VR 0
-RGreaterThan 
-CPHR 
+RGreaterThan
+CPHR
 NC 88
-B 
+B
 GPR 4
-RCE 
+RCE
 LRR 1, false
-PHR 
+PHR
 GPR 0
-RDivide 
+RDivide
 RLR 1
-AE 
-BE 
+AE
+BE
 CSE 88
 VR 0
 RLR 1
-AE 
-BE 
-AE 
+AE
+BE
+AE
 AR 66
-RR 
-PHR 
+RR
+PHR
 VR 20
-RPM 
+RPM
 GPR 4
-PHR 
+PHR
 J 107
 A false
 VR "size"
-MPR 
+MPR
 RLR 1
-AE 
-AE 
+AE
+AE
 AR 101
-RR 
-PHR 
+RR
+PHR
 VR 20
-RPM 
-CR 
-GE 
-RR 
-PHR 
+RPM
+CR
+GE
+RR
+PHR
 SPR 1
 MG 11
-PLR 
+PLR
 CSP "property"
-PHR 
+PHR
 SPR 2
 CG modifiers
-PHR 
+PHR
 VR 1
-RGM 
-CPHR 
-PHR 
+RGM
+CPHR
+PHR
 VR ""
 RVK false
-PHR 
+PHR
 VR "45 Grove St"
 RLR 1
-RCE 
+RCE
 LRR 1, false
-PLR 
-CPHR 
-PHR 
+PLR
+CPHR
+PHR
 VR "value"
 RVK true
-PHR 
+PHR
 VR 15000
-RR 
-PLR 
-CPHR 
-PHR 
+RR
+PLR
+CPHR
+PHR
 VR "size"
 RVK true
-PHR 
+PHR
 VR 2000
-RR 
-PLR 
-RR 
+RR
+PLR
+RR
 CSP "house"
-PHR 
+PHR
 SPR 2
 CG modifiers
-PHR 
+PHR
 VR 1
-RGM 
-CPHR 
-PHR 
+RGM
+CPHR
+PHR
 VR ""
 RVK false
-PHR 
+PHR
 VR "40 Grove St"
 RLR 1
-RCE 
+RCE
 LRR 1, false
-PLR 
-CPHR 
-PHR 
+PLR
+CPHR
+PHR
 VR "value"
 RVK true
-PHR 
+PHR
 VR 20000
-RR 
-PLR 
-CPHR 
-PHR 
+RR
+PLR
+CPHR
+PHR
 VR "size"
 RVK true
-PHR 
+PHR
 VR 1000
-RR 
-PLR 
-CPHR 
-PHR 
+RR
+PLR
+CPHR
+PHR
 VR "floors"
 RVK true
-PHR 
+PHR
 VR 2
-RR 
-PLR 
-RR 
+RR
+PLR
+RR
 CSP "houseValue"
 CPR 0, 2, spr, 1, vr, "value"
 RVK false
-RR 
+RR
 CSP "propertyValue"
 CPR 0, 2, spr, 3, vr, "value"
 RVK false
-RR 
+RR
 CSP "type"
 CPR 0, 2, spr, 3, vr, "getType"
 RVK false
-RCE 
+RCE
 LRR 1, false
-RR 
+RR
 CSP "sizeRatio"
 CPR 0, 2, spr, 4, vr, "getSizeRatio"
 RVK false
-RCE 
+RCE
 LRR 1, false
-RR 
+RR
 CSP "valueRatio"
 CPR 0, 2, spr, 5, vr, "getValueRatio"
 RVK false
-RCE 
+RCE
 LRR 1, false
-RR 
+RR
 ```

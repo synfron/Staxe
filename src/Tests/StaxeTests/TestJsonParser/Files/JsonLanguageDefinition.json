@@ -1,0 +1,111 @@
+﻿{
+  "Name": "Json",
+  "IndexingMode": "Lazy",
+  "Patterns": [
+    {
+      "Name": "String",
+      "Pattern": "\"((\"!.)|(\\\\.))+\""
+    },
+    {
+      "Name": "Null",
+      "Pattern": "`~null"
+    },
+    {
+      "Name": "Boolean",
+      "Pattern": "`~(true|false)"
+    },
+    {
+      "Name": "Number",
+      "Pattern": "~-?((\\d*\\.\\d+(e(-|\\+)?\\d+)?)|\\d+)"
+    },
+    {
+      "Name": "ColonSeparator",
+      "Pattern": "\\s*:\\s*"
+    },
+    {
+      "Name": "CommaSeparator",
+      "Pattern": "\\s*,\\s*"
+    },
+    {
+      "Name": "OpenBrace",
+      "Pattern": "\\{"
+    },
+    {
+      "Name": "CloseBrace",
+      "Pattern": "\\}"
+    },
+    {
+      "Name": "OpenBracket",
+      "Pattern": "\\["
+    },
+    {
+      "Name": "CloseBracket",
+      "Pattern": "\\]"
+    },
+    {
+      "Name": "Whitespace",
+      "Pattern": "\\s\\+"
+    }
+  ],
+  "StartingFragment": "Json",
+  "Fragments": [
+    {
+      "Name": "KeyValue",
+      "Parts": [
+        "String",
+        "[Item]"
+      ],
+      "PartsDelimiter": "ColonSeparator",
+      "PartsDelimiterRequired": true,
+      "PartsMatchMode": "Ordered"
+    },
+    {
+      "Name": "Object",
+      "Start": "OpenBrace",
+      "End": "CloseBrace",
+      "Parts": [
+        "[KeyValue]"
+      ],
+      "PartsDelimiter": "CommaSeparator",
+      "PartsDelimiterRequired": true,
+      "PartsPadding": "Whitespace",
+      "MinMatchedParts": 3
+    },
+    {
+      "Name": "Array",
+      "Start": "OpenBracket",
+      "End": "CloseBracket",
+      "Parts": [
+        "[Item]"
+      ],
+      "PartsDelimiter": "CommaSeparator",
+      "PartsDelimiterRequired": true,
+      "PartsPadding": "Whitespace",
+      "MinMatchedParts": 0
+    },
+    {
+      "Name": "Item",
+      "Parts": [
+        "[Object]",
+        "[Array]",
+        "Boolean",
+        "Null",
+        "String",
+        "Number"
+      ],
+      "PartsDelimiterRequired": true,
+      "PartsMatchMode": "One",
+      "FallThroughMode": "All"
+    },
+    {
+      "Name": "Json",
+      "Parts": [
+        "[Object]",
+        "[Array]"
+      ],
+      "PartsDelimiterRequired": true,
+      "PartsPadding": "Whitespace",
+      "PartsMatchMode": "One"
+    }
+  ]
+}
