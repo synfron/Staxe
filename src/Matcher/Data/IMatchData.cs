@@ -9,5 +9,6 @@ namespace Synfron.Staxe.Matcher.Data
 		string Name { get; }
 
 		string ToXml();
+
 	}
 }

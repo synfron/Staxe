@@ -7,4703 +7,4588 @@ using System.Linq;
 
 namespace Synfron.Staxe.Matcher.Interop.Bnf
 {
-	[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0059:Unnecessary assignment of a value", Justification = "<Pending>")]
-	[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
-	[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0046:Convert to conditional expression", Justification = "<Pending>")]
-	public class EbnfMatchEngine : AbstractLanguageMatchEngine
-	{
-		public override MatcherResult Match(string code, string fragmentMatcher, bool matchFullText = true)
-		{
-			FragmentMatchData matchData = new FragmentMatchData { StartIndex = 0 };
-			State state = new State()
-			{ Code = code, DistinctStringMatches = new List<StringMatchData>(2000), MatchCache = new Dictionary<ValueTuple<string, int>, FragmentMatchData>() };
-			PreMatchPatterns(ref state);
-			bool success = false;
-			switch (fragmentMatcher)
-			{
-				case "Rules":
-					success = MatchFragmentRules(ref state, matchData);
-					break;
-				case "NotRulePrefix":
-					success = MatchFragmentNotRulePrefix(ref state, matchData);
-					break;
-				case "RuleName":
-					success = MatchFragmentRuleName(ref state, matchData);
-					break;
-				case "Rule":
-					success = MatchFragmentRule(ref state, matchData);
-					break;
-				case "Expression":
-					success = MatchFragmentExpression(ref state, matchData);
-					break;
-				case "RepetitionSuffix":
-					success = MatchFragmentRepetitionSuffix(ref state, matchData);
-					break;
-				case "ExceptSuffix":
-					success = MatchFragmentExceptSuffix(ref state, matchData);
-					break;
-				case "CommaSuffix":
-					success = MatchFragmentCommaSuffix(ref state, matchData);
-					break;
-				case "OrSuffix":
-					success = MatchFragmentOrSuffix(ref state, matchData);
-					break;
-				case "OptionalComma":
-					success = MatchFragmentOptionalComma(ref state, matchData);
-					break;
-				case "RepetitionGroup":
-					success = MatchFragmentRepetitionGroup(ref state, matchData);
-					break;
-				case "OptionalGroup":
-					success = MatchFragmentOptionalGroup(ref state, matchData);
-					break;
-				case "ZeroOrOneItem":
-					success = MatchFragmentZeroOrOneItem(ref state, matchData);
-					break;
-				case "OneOrMoreItem":
-					success = MatchFragmentOneOrMoreItem(ref state, matchData);
-					break;
-				case "ZeroOrMoreItem":
-					success = MatchFragmentZeroOrMoreItem(ref state, matchData);
-					break;
-				case "Item":
-					success = MatchFragmentItem(ref state, matchData);
-					break;
-			}
-
-			IMatchData resultMatchData = matchData.Parts.FirstOrDefault();
-			int? failureIndex = success ? null : state.FailureIndex;
-			if (success && matchFullText && state.CurrentIndex != state.Code.Length)
-			{
-				success = false;
-				failureIndex = state.CurrentIndex;
-			}
-
-			return new MatcherResult(resultMatchData, success, state.CurrentIndex, failureIndex, state.MatchLogBuilder?.ToString());
-		}
-
-		public override MatcherResult Match(string code, bool matchFullText = true)
-		{
-			FragmentMatchData matchData = new FragmentMatchData { StartIndex = 0 };
-			State state = new State()
-			{ Code = code, DistinctStringMatches = new List<StringMatchData>(2000), MatchCache = new Dictionary<ValueTuple<string, int>, FragmentMatchData>() };
-			PreMatchPatterns(ref state);
-			bool success = MatchFragmentRules(ref state, matchData);
-			IMatchData resultMatchData = matchData?.Parts.FirstOrDefault();
-			int? failureIndex = success ? null : state.FailureIndex;
-			if (success && matchFullText && state.CurrentIndex != state.Code.Length)
-			{
-				success = false;
-				failureIndex = state.CurrentIndex;
-			}
-
-			return new MatcherResult(resultMatchData, success, state.CurrentIndex, failureIndex, state.MatchLogBuilder?.ToString());
-		}
-
-		private bool PreMatchPatterns(ref State state)
-		{
-			int codeLength = state.Code.Length;
-			bool success = true;
-			while (state.CurrentIndex < codeLength)
-			{
-				success = false;
-				success = MatchPatternNumber(ref state, true, false).success || MatchPatternDoubleQuoteLiteral(ref state, true, false).success || MatchPatternSingleQuoteLiteral(ref state, true, false).success || MatchPatternSpecialGroup(ref state, true, false).success || MatchPatternComment(ref state, true, false).success || MatchPatternIs(ref state, true, false).success || MatchPatternRuleName(ref state, true, false).success || MatchPatternOr(ref state, true, false).success || MatchPatternAsterisk(ref state, true, false).success || MatchPatternPlus(ref state, true, false).success || MatchPatternQuestionMark(ref state, true, false).success || MatchPatternSemicolon(ref state, true, false).success || MatchPatternPeriod(ref state, true, false).success || MatchPatternOpenBrace(ref state, true, false).success || MatchPatternCloseBrace(ref state, true, false).success || MatchPatternOpenBracket(ref state, true, false).success || MatchPatternCloseBracket(ref state, true, false).success || MatchPatternOpenParens(ref state, true, false).success || MatchPatternCloseParens(ref state, true, false).success || MatchPatternWhitespace(ref state, true, false).success || MatchPatternComma(ref state, true, false).success || MatchPatternHexChar(ref state, true, false).success || MatchPatternDash(ref state, true, false).success;
-				if (!success)
-				{
-					break;
-				}
-			}
-
-			state.CurrentIndex = 0;
-			state.DistinctIndex = 0;
-			return success;
-		}
-
-		private (bool success, int offset) MatchOneOrMore2(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool subSuccess = true;
-			bool success = false;
-			int subOffset;
-			while (subSuccess)
-			{
-				(subSuccess, subOffset) = MatchWhitespace(text, offset);
-				offset += subOffset;
-				success |= subSuccess;
-			}
-
-			return success ? (true, offset - startOffset) : (false, 0);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternWhitespace(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchOneOrMore2(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "Whitespace", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 20 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 20;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 20;
-				}
-				else
-				{
-					if (state.CheckFlags[20] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchOneOrMore2(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "Whitespace", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 20 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[20] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private (bool success, int offset) MatchLiteral28(string text, int startOffset)
-		{
-			string literal = "<";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, int offset) MatchLiteral29(string text, int startOffset)
-		{
-			string literal = "-";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, int offset) MatchLiteral30(string text, int startOffset)
-		{
-			string literal = "_";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, int offset) MatchOr4(string text, int startOffset)
-		{
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchWordChar(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			(success, subOffset) = MatchLiteral29(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			(success, subOffset) = MatchLiteral30(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			return (false, 0);
-		}
-
-		private (bool success, int offset) MatchWildcard4(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success = true;
-			int subOffset;
-			while (success)
-			{
-				(success, subOffset) = MatchOr4(text, offset);
-				offset += subOffset;
-			}
-
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchLiteral31(string text, int startOffset)
-		{
-			string literal = ">";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, int offset) MatchGroup12(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchLiteral28(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchLetter(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchWildcard4(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchLiteral31(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchGroup13(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchLetter(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchWildcard4(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchOr6(string text, int startOffset)
-		{
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchGroup12(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			(success, subOffset) = MatchGroup13(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			return (false, 0);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternRuleName(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchOr6(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "RuleName", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 7 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 7;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 7;
-				}
-				else
-				{
-					if (state.CheckFlags[7] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchOr6(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "RuleName", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 7 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[7] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchPartByTextMatcherRuleName(ref State state, FragmentMatchData matchData)
-		{
-			(bool success, StringMatchData partMatchData) = MatchPatternRuleName(ref state, true, false);
-			if (success)
-			{
-				matchData.Parts.Add(partMatchData);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsOneModeRuleName(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			int matchCount = 0;
-			success = MatchPartByTextMatcherRuleName(ref state, matchData);
-			if (success)
-			{
-				matchCount++;
-			}
-
-			success = false || matchCount > 0;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentRuleName(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			if (!state.MatchCache.TryGetValue(new ValueTuple<string, int>("RuleName", state.CurrentIndex), out FragmentMatchData partMatcherData))
-			{
-				int startIndex = state.CurrentIndex;
-				int distinctIndex = state.DistinctIndex;
-				partMatcherData = new FragmentMatchData { Name = "RuleName", StartIndex = state.CurrentIndex };
-				success = (MatchFragmentPartsOneModeRuleName(ref state, partMatcherData));
-				if (success)
-				{
-					partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-					partMatcherData.EndDistinctIndex = state.DistinctIndex;
-					state.MatchCache[new ValueTuple<string, int>("RuleName", startIndex)] = partMatcherData;
-				}
-				else
-				{
-					state.MatchCache[new ValueTuple<string, int>("RuleName", startIndex)] = null;
-					state.CurrentIndex = startIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-			}
-			else if (success = partMatcherData != null)
-			{
-				state.CurrentIndex = partMatcherData.StartIndex + partMatcherData.Length;
-				state.DistinctIndex = partMatcherData.EndDistinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsOneModeRulePrefix(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			int matchCount = 0;
-			MatchPatternWhitespace(ref state, false, false);
-			success = MatchFragmentRuleName(ref state, matchData);
-			if (success)
-			{
-				matchCount++;
-			}
-
-			if (success)
-			{
-				MatchPatternWhitespace(ref state, false, false);
-			}
-
-			success = false || matchCount > 0;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral24(string text, int startOffset)
-		{
-			string literal = "::=";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, int offset) MatchLiteral25(string text, int startOffset)
-		{
-			string literal = ":=";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, int offset) MatchLiteral26(string text, int startOffset)
-		{
-			string literal = ":";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, int offset) MatchLiteral27(string text, int startOffset)
-		{
-			string literal = "=";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, int offset) MatchOr3(string text, int startOffset)
-		{
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchLiteral24(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			(success, subOffset) = MatchLiteral25(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			(success, subOffset) = MatchLiteral26(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			(success, subOffset) = MatchLiteral27(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			return (false, 0);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternIs(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchOr3(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "Is", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 6 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 6;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 6;
-				}
-				else
-				{
-					if (state.CheckFlags[6] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchOr3(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "Is", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 6 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[6] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchFragmentBoundsIs(ref State state, bool readOnly, out StringMatchData matchData)
-		{
-			bool success;
-			(success, matchData) = MatchPatternIs(ref state, true, readOnly);
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentRulePrefix(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			if (!state.MatchCache.TryGetValue(new ValueTuple<string, int>("RulePrefix", state.CurrentIndex), out FragmentMatchData partMatcherData))
-			{
-				int startIndex = state.CurrentIndex;
-				int distinctIndex = state.DistinctIndex;
-				partMatcherData = new FragmentMatchData { Name = "RulePrefix", StartIndex = state.CurrentIndex };
-				success = (MatchFragmentPartsOneModeRulePrefix(ref state, partMatcherData) && MatchFragmentBoundsIs(ref state, false, out StringMatchData endMatchData));
-				if (success)
-				{
-					partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-					partMatcherData.EndDistinctIndex = state.DistinctIndex;
-					state.MatchCache[new ValueTuple<string, int>("RulePrefix", startIndex)] = partMatcherData;
-				}
-				else
-				{
-					state.MatchCache[new ValueTuple<string, int>("RulePrefix", startIndex)] = null;
-					state.CurrentIndex = startIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-			}
-			else if (success = partMatcherData != null)
-			{
-				state.CurrentIndex = partMatcherData.StartIndex + partMatcherData.Length;
-				state.DistinctIndex = partMatcherData.EndDistinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.AddRange(partMatcherData.Parts);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral0(string text, int startOffset)
-		{
-			string literal = "\"";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, int offset) MatchNot0(string text, int startOffset)
-		{
-			return text.Length > startOffset && !MatchLiteral0(text, startOffset).success ? (true, 0) : (false, 0);
-		}
-
-		private (bool success, int offset) MatchGroup0(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchNot0(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchAny(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchWildcard0(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success = true;
-			int subOffset;
-			while (success)
-			{
-				(success, subOffset) = MatchGroup0(text, offset);
-				offset += subOffset;
-			}
-
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchGroup1(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchLiteral0(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchWildcard0(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchLiteral0(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternDoubleQuoteLiteral(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchGroup1(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "DoubleQuoteLiteral", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 2 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 2;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 2;
-				}
-				else
-				{
-					if (state.CheckFlags[2] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchGroup1(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "DoubleQuoteLiteral", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 2 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[2] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchPartByTextMatcherDoubleQuoteLiteral(ref State state, FragmentMatchData matchData)
-		{
-			(bool success, StringMatchData partMatchData) = MatchPatternDoubleQuoteLiteral(ref state, true, false);
-			if (success)
-			{
-				matchData.Parts.Add(partMatchData);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral3(string text, int startOffset)
-		{
-			string literal = "'";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, int offset) MatchNot1(string text, int startOffset)
-		{
-			return text.Length > startOffset && !MatchLiteral3(text, startOffset).success ? (true, 0) : (false, 0);
-		}
-
-		private (bool success, int offset) MatchGroup2(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchNot1(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchAny(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchWildcard1(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success = true;
-			int subOffset;
-			while (success)
-			{
-				(success, subOffset) = MatchGroup2(text, offset);
-				offset += subOffset;
-			}
-
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchGroup3(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchLiteral3(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchWildcard1(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchLiteral3(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternSingleQuoteLiteral(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchGroup3(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "SingleQuoteLiteral", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 3 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 3;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 3;
-				}
-				else
-				{
-					if (state.CheckFlags[3] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchGroup3(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "SingleQuoteLiteral", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 3 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[3] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchPartByTextMatcherSingleQuoteLiteral(ref State state, FragmentMatchData matchData)
-		{
-			(bool success, StringMatchData partMatchData) = MatchPatternSingleQuoteLiteral(ref state, true, false);
-			if (success)
-			{
-				matchData.Parts.Add(partMatchData);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral44(string text, int startOffset)
-		{
-			string literal = "(";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternOpenParens(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchLiteral44(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "OpenParens", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 18 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 18;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 18;
-				}
-				else
-				{
-					if (state.CheckFlags[18] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchLiteral44(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "OpenParens", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 18 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[18] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchFragmentBoundsOpenParens(ref State state, bool readOnly, out StringMatchData matchData)
-		{
-			bool success;
-			(success, matchData) = MatchPatternOpenParens(ref state, true, readOnly);
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsOneModeExpressionGroup(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			int matchCount = 0;
-			MatchPatternWhitespace(ref state, false, false);
-			success = MatchFragmentExpression(ref state, matchData);
-			if (success)
-			{
-				matchCount++;
-			}
-
-			if (success)
-			{
-				MatchPatternWhitespace(ref state, false, false);
-			}
-
-			success = false || matchCount > 0;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral45(string text, int startOffset)
-		{
-			string literal = ")";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternCloseParens(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchLiteral45(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "CloseParens", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 19 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 19;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 19;
-				}
-				else
-				{
-					if (state.CheckFlags[19] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchLiteral45(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "CloseParens", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 19 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[19] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchFragmentBoundsCloseParens(ref State state, bool readOnly, out StringMatchData matchData)
-		{
-			bool success;
-			(success, matchData) = MatchPatternCloseParens(ref state, true, readOnly);
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentExpressionGroup(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "ExpressionGroup", StartIndex = state.CurrentIndex };
-			success = (MatchFragmentBoundsOpenParens(ref state, false, out StringMatchData startMatchData) && MatchFragmentPartsOneModeExpressionGroup(ref state, partMatcherData) && MatchFragmentBoundsCloseParens(ref state, false, out StringMatchData endMatchData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.AddRange(partMatcherData.Parts);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral40(string text, int startOffset)
-		{
-			string literal = "{";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternOpenBrace(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchLiteral40(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "OpenBrace", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 14 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 14;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 14;
-				}
-				else
-				{
-					if (state.CheckFlags[14] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchLiteral40(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "OpenBrace", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 14 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[14] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchFragmentBoundsOpenBrace(ref State state, bool readOnly, out StringMatchData matchData)
-		{
-			bool success;
-			(success, matchData) = MatchPatternOpenBrace(ref state, true, readOnly);
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral41(string text, int startOffset)
-		{
-			string literal = "}";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternCloseBrace(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchLiteral41(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "CloseBrace", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 15 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 15;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 15;
-				}
-				else
-				{
-					if (state.CheckFlags[15] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchLiteral41(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "CloseBrace", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 15 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[15] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchFragmentBoundsCloseBrace(ref State state, bool readOnly, out StringMatchData matchData)
-		{
-			bool success;
-			(success, matchData) = MatchPatternCloseBrace(ref state, true, readOnly);
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentRepetitionGroup(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "RepetitionGroup", StartIndex = state.CurrentIndex };
-			success = (MatchFragmentBoundsOpenBrace(ref state, false, out StringMatchData startMatchData) && MatchFragmentPartsOneModeExpressionGroup(ref state, partMatcherData) && MatchFragmentBoundsCloseBrace(ref state, false, out StringMatchData endMatchData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral42(string text, int startOffset)
-		{
-			string literal = "[";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternOpenBracket(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchLiteral42(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "OpenBracket", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 16 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 16;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 16;
-				}
-				else
-				{
-					if (state.CheckFlags[16] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchLiteral42(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "OpenBracket", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 16 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[16] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchFragmentBoundsOpenBracket(ref State state, bool readOnly, out StringMatchData matchData)
-		{
-			bool success;
-			(success, matchData) = MatchPatternOpenBracket(ref state, true, readOnly);
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral43(string text, int startOffset)
-		{
-			string literal = "]";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternCloseBracket(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchLiteral43(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "CloseBracket", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 17 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 17;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 17;
-				}
-				else
-				{
-					if (state.CheckFlags[17] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchLiteral43(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "CloseBracket", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 17 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[17] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchFragmentBoundsCloseBracket(ref State state, bool readOnly, out StringMatchData matchData)
-		{
-			bool success;
-			(success, matchData) = MatchPatternCloseBracket(ref state, true, readOnly);
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentOptionalGroup(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "OptionalGroup", StartIndex = state.CurrentIndex };
-			success = (MatchFragmentBoundsOpenBracket(ref state, false, out _) && MatchFragmentPartsOneModeExpressionGroup(ref state, partMatcherData) && MatchFragmentBoundsCloseBracket(ref state, false, out _));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchNot2(string text, int startOffset)
-		{
-			return text.Length > startOffset && !MatchLiteral42(text, startOffset).success ? (true, 0) : (false, 0);
-		}
-
-		private (bool success, int offset) MatchNot3(string text, int startOffset)
-		{
-			return text.Length > startOffset && !MatchLiteral43(text, startOffset).success ? (true, 0) : (false, 0);
-		}
-
-		private (bool success, int offset) MatchGroup4(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchNot2(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchNot3(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchAny(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchLiteral9(string text, int startOffset)
-		{
-			string literal = "\\";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, int offset) MatchGroup5(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchLiteral9(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchLiteral42(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchGroup6(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchLiteral9(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchLiteral43(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchOr0(string text, int startOffset)
-		{
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchGroup5(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			(success, subOffset) = MatchGroup6(text, startOffset);
-			return success ? (true, subOffset) : (false, 0);
-		}
-
-		private (bool success, int offset) MatchOr1(string text, int startOffset)
-		{
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchGroup4(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			(success, subOffset) = MatchOr0(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			return (false, 0);
-		}
-
-		private (bool success, int offset) MatchOneOrMore1(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool subSuccess = true;
-			bool success = false;
-			int subOffset;
-			while (subSuccess)
-			{
-				(subSuccess, subOffset) = MatchOr1(text, offset);
-				offset += subOffset;
-				success |= subSuccess;
-			}
-
-			return success ? (true, offset - startOffset) : (false, 0);
-		}
-
-		private (bool success, int offset) MatchGroup7(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchLiteral42(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchOneOrMore1(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchLiteral43(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternSpecialGroup(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchGroup7(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "SpecialGroup", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 4 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 4;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 4;
-				}
-				else
-				{
-					if (state.CheckFlags[4] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchGroup7(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "SpecialGroup", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 4 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[4] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchPartByTextMatcherSpecialGroup(ref State state, FragmentMatchData matchData)
-		{
-			(bool success, StringMatchData partMatchData) = MatchPatternSpecialGroup(ref state, true, false);
-			if (success)
-			{
-				matchData.Parts.Add(partMatchData);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchInsensitiveLiteral0(string text, int startOffset)
-		{
-			string literal = "#x";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (char.ToLowerInvariant(text[i + startOffset]) != char.ToLowerInvariant(literal[i]))
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, int offset) MatchCharBounds0(string text, int startOffset)
-		{
-			int charVal = text[startOffset];
-			return (97 <= charVal && 102 >= charVal) ? (true, 1) : (false, 0);
-		}
-
-		private (bool success, int offset) MatchCharBounds1(string text, int startOffset)
-		{
-			int charVal = text[startOffset];
-			return (65 <= charVal && 70 >= charVal) ? (true, 1) : (false, 0);
-		}
-
-		private (bool success, int offset) MatchCharBounds2(string text, int startOffset)
-		{
-			int charVal = text[startOffset];
-			return (48 <= charVal && 57 >= charVal) ? (true, 1) : (false, 0);
-		}
-
-		private (bool success, int offset) MatchOr7(string text, int startOffset)
-		{
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchCharBounds0(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			(success, subOffset) = MatchCharBounds1(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			(success, subOffset) = MatchCharBounds2(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			return (false, 0);
-		}
-
-		private (bool success, int offset) MatchCountBounds0(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool subSuccess = true;
-			int subOffset;
-			int matches = 0;
-			for (; matches < 4 && subSuccess; matches++)
-			{
-				(subSuccess, subOffset) = MatchOr7(text, offset);
-				offset += subOffset;
-			}
-
-			bool success = subSuccess || matches >= 1;
-			return success ? (true, offset - startOffset) : (false, 0);
-		}
-
-		private (bool success, int offset) MatchGroup14(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchInsensitiveLiteral0(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchCountBounds0(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternHexChar(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchGroup14(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "HexChar", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 22 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 22;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 22;
-				}
-				else
-				{
-					if (state.CheckFlags[22] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchGroup14(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "HexChar", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 22 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[22] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchPartByTextMatcherHexChar(ref State state, FragmentMatchData matchData)
-		{
-			(bool success, StringMatchData partMatchData) = MatchPatternHexChar(ref state, true, false);
-			if (success)
-			{
-				matchData.Parts.Add(partMatchData);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchOneOrMore0(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool subSuccess = true;
-			bool success = false;
-			int subOffset;
-			while (subSuccess)
-			{
-				(subSuccess, subOffset) = MatchDigit(text, offset);
-				offset += subOffset;
-				success |= subSuccess;
-			}
-
-			return success ? (true, offset - startOffset) : (false, 0);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternNumber(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchOneOrMore0(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "Number", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 1 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 1;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 1;
-				}
-				else
-				{
-					if (state.CheckFlags[1] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchOneOrMore0(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "Number", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 1 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[1] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchPartByTextMatcherNumber(ref State state, FragmentMatchData matchData)
-		{
-			(bool success, StringMatchData partMatchData) = MatchPatternNumber(ref state, true, false);
-			if (success)
-			{
-				matchData.Parts.Add(partMatchData);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsOneModeItem(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			int matchCount = 0;
-			success = MatchPartByTextMatcherDoubleQuoteLiteral(ref state, matchData) || MatchPartByTextMatcherSingleQuoteLiteral(ref state, matchData) || MatchFragmentExpressionGroup(ref state, matchData) || MatchFragmentRepetitionGroup(ref state, matchData) || MatchFragmentOptionalGroup(ref state, matchData) || MatchPartByTextMatcherSpecialGroup(ref state, matchData) || MatchFragmentRuleName(ref state, matchData) || MatchPartByTextMatcherHexChar(ref state, matchData) || MatchPartByTextMatcherNumber(ref state, matchData);
-			if (success)
-			{
-				matchCount++;
-			}
-
-			success = false || matchCount > 0;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentItem(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			if (!state.MatchCache.TryGetValue(new ValueTuple<string, int>("Item", state.CurrentIndex), out FragmentMatchData partMatcherData))
-			{
-				int startIndex = state.CurrentIndex;
-				int distinctIndex = state.DistinctIndex;
-				partMatcherData = new FragmentMatchData { Name = "Item", StartIndex = state.CurrentIndex };
-				success = (MatchFragmentPartsOneModeItem(ref state, partMatcherData));
-				if (success)
-				{
-					partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-					partMatcherData.EndDistinctIndex = state.DistinctIndex;
-					state.MatchCache[new ValueTuple<string, int>("Item", startIndex)] = partMatcherData;
-				}
-				else
-				{
-					state.MatchCache[new ValueTuple<string, int>("Item", startIndex)] = null;
-					state.CurrentIndex = startIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-			}
-			else if (success = partMatcherData != null)
-			{
-				state.CurrentIndex = partMatcherData.StartIndex + partMatcherData.Length;
-				state.DistinctIndex = partMatcherData.EndDistinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsOneModeZeroOrOneItem(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			int matchCount = 0;
-			success = MatchFragmentItem(ref state, matchData);
-			if (success)
-			{
-				matchCount++;
-			}
-
-			success = false || matchCount > 0;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral37(string text, int startOffset)
-		{
-			string literal = "?";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternQuestionMark(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchLiteral37(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "QuestionMark", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 11 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 11;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 11;
-				}
-				else
-				{
-					if (state.CheckFlags[11] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchLiteral37(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "QuestionMark", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 11 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[11] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchFragmentBoundsQuestionMark(ref State state, bool readOnly, out StringMatchData matchData)
-		{
-			bool success;
-			(success, matchData) = MatchPatternQuestionMark(ref state, true, readOnly);
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentZeroOrOneItem(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "ZeroOrOneItem", StartIndex = state.CurrentIndex };
-			success = (MatchFragmentPartsOneModeZeroOrOneItem(ref state, partMatcherData) && MatchFragmentBoundsQuestionMark(ref state, false, out StringMatchData endMatchData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral36(string text, int startOffset)
-		{
-			string literal = "+";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternPlus(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchLiteral36(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "Plus", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 10 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 10;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 10;
-				}
-				else
-				{
-					if (state.CheckFlags[10] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchLiteral36(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "Plus", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 10 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[10] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchFragmentBoundsPlus(ref State state, bool readOnly, out StringMatchData matchData)
-		{
-			bool success;
-			(success, matchData) = MatchPatternPlus(ref state, true, readOnly);
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentOneOrMoreItem(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "OneOrMoreItem", StartIndex = state.CurrentIndex };
-			success = (MatchFragmentPartsOneModeZeroOrOneItem(ref state, partMatcherData) && MatchFragmentBoundsPlus(ref state, false, out StringMatchData endMatchData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral35(string text, int startOffset)
-		{
-			string literal = "*";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternAsterisk(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchLiteral35(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "Asterisk", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 9 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 9;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 9;
-				}
-				else
-				{
-					if (state.CheckFlags[9] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchLiteral35(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "Asterisk", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 9 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[9] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchFragmentBoundsAsterisk(ref State state, bool readOnly, out StringMatchData matchData)
-		{
-			bool success;
-			(success, matchData) = MatchPatternAsterisk(ref state, true, readOnly);
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentZeroOrMoreItem(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "ZeroOrMoreItem", StartIndex = state.CurrentIndex };
-			success = (MatchFragmentPartsOneModeZeroOrOneItem(ref state, partMatcherData) && MatchFragmentBoundsAsterisk(ref state, false, out StringMatchData endMatchData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsOneModeExpressionValue(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			int matchCount = 0;
-			MatchPatternWhitespace(ref state, false, false);
-			success = MatchFragmentZeroOrOneItem(ref state, matchData) || MatchFragmentOneOrMoreItem(ref state, matchData) || MatchFragmentZeroOrMoreItem(ref state, matchData) || MatchFragmentItem(ref state, matchData);
-			if (success)
-			{
-				matchCount++;
-			}
-
-			if (success)
-			{
-				MatchPatternWhitespace(ref state, false, false);
-			}
-
-			success = false || matchCount > 0;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentExpressionValue(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "ExpressionValue", StartIndex = state.CurrentIndex };
-			success = (MatchFragmentPartsOneModeExpressionValue(ref state, partMatcherData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.AddRange(partMatcherData.Parts);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral34(string text, int startOffset)
-		{
-			string literal = "|";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternOr(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchLiteral34(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "Or", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 8 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 8;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 8;
-				}
-				else
-				{
-					if (state.CheckFlags[8] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchLiteral34(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "Or", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 8 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[8] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchPartByTextMatcherOr(ref State state, FragmentMatchData matchData)
-		{
-			(bool success, StringMatchData partMatchData) = MatchPatternOr(ref state, true, false);
-			if (success)
-			{
-				matchData.Parts.Add(partMatchData);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsOrderedModeOrSuffix(ref State state, FragmentMatchData matchData)
-		{
-			bool success = true;
-			bool partSuccess;
-			int matchCount = 0;
-			StringMatchData stringMatchData = null;
-			int distinctIndex = state.DistinctIndex;
-			MatchPatternWhitespace(ref state, false, false);
-			success = MatchPartByTextMatcherOr(ref state, matchData);
-			if (!success)
-			{
-				if (stringMatchData != null)
-				{
-					state.CurrentIndex = stringMatchData.StartIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-
-				goto Break;
-			}
-			else
-			{
-				matchCount++;
-			}
-
-			distinctIndex = state.DistinctIndex;
-			(partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
-			success = partSuccess;
-			if (!success)
-			{
-				goto Break;
-			}
-
-			success = MatchFragmentExpressionValue(ref state, matchData);
-			if (!success)
-			{
-				if (stringMatchData != null)
-				{
-					state.CurrentIndex = stringMatchData.StartIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-
-				goto Break;
-			}
-			else
-			{
-				matchCount++;
-			}
-
-		Break:
-			if (success)
-			{
-				MatchPatternWhitespace(ref state, false, false);
-			}
-
-			success = success || 2 <= matchCount;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentOrSuffix(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "OrSuffix", StartIndex = state.CurrentIndex, ExpressionOrder = 4 };
-			success = (MatchFragmentPartsOrderedModeOrSuffix(ref state, partMatcherData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-			}
-
-			return success;
-		}
-
-		private bool MatchPartByTextMatcherAsterisk(ref State state, FragmentMatchData matchData)
-		{
-			(bool success, StringMatchData partMatchData) = MatchPatternAsterisk(ref state, true, false);
-			if (success)
-			{
-				matchData.Parts.Add(partMatchData);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsOrderedModeRepetitionSuffix(ref State state, FragmentMatchData matchData)
-		{
-			bool success = true;
-			bool partSuccess;
-			int matchCount = 0;
-			StringMatchData stringMatchData = null;
-			int distinctIndex = state.DistinctIndex;
-			;
-			success = MatchPartByTextMatcherAsterisk(ref state, matchData);
-			if (!success)
-			{
-				if (stringMatchData != null)
-				{
-					state.CurrentIndex = stringMatchData.StartIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-
-				goto Break;
-			}
-			else
-			{
-				matchCount++;
-			}
-
-			distinctIndex = state.DistinctIndex;
-			(partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
-			success = partSuccess;
-			if (!success)
-			{
-				goto Break;
-			}
-
-			success = MatchFragmentExpressionValue(ref state, matchData);
-			if (!success)
-			{
-				if (stringMatchData != null)
-				{
-					state.CurrentIndex = stringMatchData.StartIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-
-				goto Break;
-			}
-			else
-			{
-				matchCount++;
-			}
-
-		Break:
-			success = success || 2 <= matchCount;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentRepetitionSuffix(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "RepetitionSuffix", StartIndex = state.CurrentIndex, ExpressionOrder = 1 };
-			success = (MatchFragmentPartsOrderedModeRepetitionSuffix(ref state, partMatcherData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-			}
-
-			return success;
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternDash(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchLiteral29(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "Dash", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 23 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 23;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 23;
-				}
-				else
-				{
-					if (state.CheckFlags[23] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchLiteral29(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "Dash", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 23 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[23] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchPartByTextMatcherDash(ref State state, FragmentMatchData matchData)
-		{
-			(bool success, StringMatchData partMatchData) = MatchPatternDash(ref state, true, false);
-			if (success)
-			{
-				matchData.Parts.Add(partMatchData);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsOrderedModeExceptSuffix(ref State state, FragmentMatchData matchData)
-		{
-			bool success = true;
-			bool partSuccess;
-			int matchCount = 0;
-			StringMatchData stringMatchData = null;
-			int distinctIndex = state.DistinctIndex;
-			;
-			success = MatchPartByTextMatcherDash(ref state, matchData);
-			if (!success)
-			{
-				if (stringMatchData != null)
-				{
-					state.CurrentIndex = stringMatchData.StartIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-
-				goto Break;
-			}
-			else
-			{
-				matchCount++;
-			}
-
-			distinctIndex = state.DistinctIndex;
-			(partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
-			success = partSuccess;
-			if (!success)
-			{
-				goto Break;
-			}
-
-			success = MatchFragmentExpressionValue(ref state, matchData);
-			if (!success)
-			{
-				if (stringMatchData != null)
-				{
-					state.CurrentIndex = stringMatchData.StartIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-
-				goto Break;
-			}
-			else
-			{
-				matchCount++;
-			}
-
-		Break:
-			success = success || 2 <= matchCount;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentExceptSuffix(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "ExceptSuffix", StartIndex = state.CurrentIndex, ExpressionOrder = 2 };
-			success = (MatchFragmentPartsOrderedModeExceptSuffix(ref state, partMatcherData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral46(string text, int startOffset)
-		{
-			string literal = ",";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternComma(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchLiteral46(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "Comma", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 21 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 21;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 21;
-				}
-				else
-				{
-					if (state.CheckFlags[21] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchLiteral46(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "Comma", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 21 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[21] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchPartByTextMatcherComma(ref State state, FragmentMatchData matchData)
-		{
-			(bool success, StringMatchData partMatchData) = MatchPatternComma(ref state, true, false);
-			if (success)
-			{
-				matchData.Parts.Add(partMatchData);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsOneModeOptionalComma(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			int matchCount = 0;
-			success = MatchPartByTextMatcherComma(ref state, matchData);
-			if (success)
-			{
-				matchCount++;
-			}
-
-			success = true || matchCount > 0;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentOptionalComma(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "OptionalComma", StartIndex = state.CurrentIndex };
-			success = (MatchFragmentPartsOneModeOptionalComma(ref state, partMatcherData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsOneModeNotRulePrefix(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			int matchCount = 0;
-			success = MatchFragmentRulePrefix(ref state, matchData);
-			if (success)
-			{
-				matchCount++;
-			}
-
-			success = false || matchCount > 0;
-			if (success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentNotRulePrefix(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "NotRulePrefix", StartIndex = state.CurrentIndex };
-			success = (MatchFragmentPartsOneModeNotRulePrefix(ref state, partMatcherData));
-			if (success)
-			{
-			}
-			else
-			{
-			}
-
-			state.CurrentIndex = startIndex;
-			state.DistinctIndex = distinctIndex;
-			return !success;
-		}
-
-		private bool MatchFragmentPartsOrderedModeCommaSuffix(ref State state, FragmentMatchData matchData)
-		{
-			bool success = true;
-			bool partSuccess;
-			int matchCount = 0;
-			StringMatchData stringMatchData = null;
-			int distinctIndex = state.DistinctIndex;
-			;
-			success = MatchFragmentOptionalComma(ref state, matchData);
-			if (!success)
-			{
-				if (stringMatchData != null)
-				{
-					state.CurrentIndex = stringMatchData.StartIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-
-				goto Break;
-			}
-			else
-			{
-				matchCount++;
-			}
-
-			distinctIndex = state.DistinctIndex;
-			(partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
-			success = partSuccess;
-			if (!success)
-			{
-				goto Break;
-			}
-
-			success = MatchFragmentNotRulePrefix(ref state, matchData);
-			if (!success)
-			{
-				if (stringMatchData != null)
-				{
-					state.CurrentIndex = stringMatchData.StartIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-
-				goto Break;
-			}
-			else
-			{
-				matchCount++;
-			}
-
-			distinctIndex = state.DistinctIndex;
-			(partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
-			success = partSuccess;
-			if (!success)
-			{
-				goto Break;
-			}
-
-			success = MatchFragmentExpressionValue(ref state, matchData);
-			if (!success)
-			{
-				if (stringMatchData != null)
-				{
-					state.CurrentIndex = stringMatchData.StartIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-
-				goto Break;
-			}
-			else
-			{
-				matchCount++;
-			}
-
-		Break:
-			success = success || 3 <= matchCount;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentCommaSuffix(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "CommaSuffix", StartIndex = state.CurrentIndex, ExpressionOrder = 3 };
-			success = (MatchFragmentPartsOrderedModeCommaSuffix(ref state, partMatcherData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsMultipleModeExpressionSuffix(ref State state, FragmentMatchData matchData)
-		{
-			bool overallSuccess = false;
-			bool subSuccess = false;
-			bool delimiterSuccess = false;
-			StringMatchData range = default;
-			int matchCount = 0;
-			int distinctIndex = state.DistinctIndex;
-			;
-			do
-			{
-				subSuccess = false;
-				bool individualSuccess;
-				individualSuccess = MatchFragmentOrSuffix(ref state, matchData);
-				subSuccess |= individualSuccess;
-				if (individualSuccess)
-				{
-					matchCount++;
-					distinctIndex = state.DistinctIndex;
-					(delimiterSuccess, range) = (true, null);
-					goto Break;
-				}
-
-				individualSuccess = MatchFragmentRepetitionSuffix(ref state, matchData);
-				subSuccess |= individualSuccess;
-				if (individualSuccess)
-				{
-					matchCount++;
-					distinctIndex = state.DistinctIndex;
-					(delimiterSuccess, range) = (true, null);
-					goto Break;
-				}
-
-				individualSuccess = MatchFragmentExceptSuffix(ref state, matchData);
-				subSuccess |= individualSuccess;
-				if (individualSuccess)
-				{
-					matchCount++;
-					distinctIndex = state.DistinctIndex;
-					(delimiterSuccess, range) = (true, null);
-					goto Break;
-				}
-
-				individualSuccess = MatchFragmentCommaSuffix(ref state, matchData);
-				subSuccess |= individualSuccess;
-				if (individualSuccess)
-				{
-					matchCount++;
-					distinctIndex = state.DistinctIndex;
-					(delimiterSuccess, range) = (true, null);
-					goto Break;
-				}
-
-			Break:
-				overallSuccess |= subSuccess;
-			}
-			while (subSuccess && delimiterSuccess);
-			if (delimiterSuccess && range != null)
-			{
-				state.CurrentIndex = range.StartIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			bool thresholdSuccess = 0 <= matchCount;
-			bool success = overallSuccess || thresholdSuccess;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentExpressionSuffix(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "ExpressionSuffix", StartIndex = state.CurrentIndex };
-			success = (MatchFragmentPartsMultipleModeExpressionSuffix(ref state, partMatcherData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.AddRange(partMatcherData.Parts);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsOrderedModeExpression(ref State state, FragmentMatchData matchData)
-		{
-			bool success = true;
-			bool partSuccess;
-			int matchCount = 0;
-			StringMatchData stringMatchData = null;
-			int distinctIndex = state.DistinctIndex;
-			MatchPatternWhitespace(ref state, false, false);
-			success = MatchFragmentExpressionValue(ref state, matchData);
-			if (!success)
-			{
-				if (stringMatchData != null)
-				{
-					state.CurrentIndex = stringMatchData.StartIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-
-				goto Break;
-			}
-			else
-			{
-				matchCount++;
-			}
-
-			distinctIndex = state.DistinctIndex;
-			(partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
-			success = partSuccess;
-			if (!success)
-			{
-				goto Break;
-			}
-
-			success = MatchFragmentExpressionSuffix(ref state, matchData);
-			if (!success)
-			{
-				if (stringMatchData != null)
-				{
-					state.CurrentIndex = stringMatchData.StartIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-
-				goto Break;
-			}
-			else
-			{
-				matchCount++;
-			}
-
-		Break:
-			if (success)
-			{
-				MatchPatternWhitespace(ref state, false, false);
-			}
-
-			success = success || 2 <= matchCount;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentExpression(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "Expression", StartIndex = state.CurrentIndex };
-			success = (MatchFragmentPartsOrderedModeExpression(ref state, partMatcherData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-				ConvertToExpressionTree(partMatcherData, ExpressionMode.LikeNameTree);
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral38(string text, int startOffset)
-		{
-			string literal = ";";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternSemicolon(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchLiteral38(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "Semicolon", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 12 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 12;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 12;
-				}
-				else
-				{
-					if (state.CheckFlags[12] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchLiteral38(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "Semicolon", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 12 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[12] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchPartByTextMatcherSemicolon(ref State state, FragmentMatchData matchData)
-		{
-			(bool success, StringMatchData partMatchData) = MatchPatternSemicolon(ref state, true, false);
-			if (success)
-			{
-				matchData.Parts.Add(partMatchData);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchLiteral39(string text, int startOffset)
-		{
-			string literal = ".";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternPeriod(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchLiteral39(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "Period", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 13 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 13;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 13;
-				}
-				else
-				{
-					if (state.CheckFlags[13] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchLiteral39(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "Period", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 13 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[13] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-
-		private bool MatchPartByTextMatcherPeriod(ref State state, FragmentMatchData matchData)
-		{
-			(bool success, StringMatchData partMatchData) = MatchPatternPeriod(ref state, true, false);
-			if (success)
-			{
-				matchData.Parts.Add(partMatchData);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsOneModeEndMark(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			int matchCount = 0;
-			success = MatchPartByTextMatcherSemicolon(ref state, matchData) || MatchPartByTextMatcherPeriod(ref state, matchData);
-			if (success)
-			{
-				matchCount++;
-			}
-
-			success = false || matchCount > 0;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentEndMark(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "EndMark", StartIndex = state.CurrentIndex };
-			success = (MatchFragmentPartsOneModeEndMark(ref state, partMatcherData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsOrderedModeRule(ref State state, FragmentMatchData matchData)
-		{
-			bool success = true;
-			bool partSuccess;
-			int matchCount = 0;
-			StringMatchData stringMatchData = null;
-			int distinctIndex = state.DistinctIndex;
-			;
-			success = MatchFragmentRulePrefix(ref state, matchData);
-			if (!success)
-			{
-				if (stringMatchData != null)
-				{
-					state.CurrentIndex = stringMatchData.StartIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-
-				goto Break;
-			}
-			else
-			{
-				matchCount++;
-			}
-
-			distinctIndex = state.DistinctIndex;
-			(partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
-			success = partSuccess;
-			if (!success)
-			{
-				goto Break;
-			}
-
-			success = MatchFragmentExpression(ref state, matchData);
-			if (!success)
-			{
-				if (stringMatchData != null)
-				{
-					state.CurrentIndex = stringMatchData.StartIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-
-				goto Break;
-			}
-			else
-			{
-				matchCount++;
-			}
-
-			distinctIndex = state.DistinctIndex;
-			(partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
-			success = partSuccess;
-			if (!success)
-			{
-				goto Break;
-			}
-
-			success = MatchFragmentEndMark(ref state, matchData);
-			if (!success)
-			{
-				if (stringMatchData != null)
-				{
-					state.CurrentIndex = stringMatchData.StartIndex;
-					state.DistinctIndex = distinctIndex;
-				}
-
-				goto Break;
-			}
-			else
-			{
-				matchCount++;
-			}
-
-		Break:
-			success = success || 2 <= matchCount;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentRule(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "Rule", StartIndex = state.CurrentIndex };
-			success = (MatchFragmentPartsOrderedModeRule(ref state, partMatcherData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-				state.MatchCache.Clear();
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentPartsMultipleModeRules(ref State state, FragmentMatchData matchData)
-		{
-			bool overallSuccess = false;
-			bool subSuccess = false;
-			bool delimiterSuccess = false;
-			StringMatchData range = default;
-			int matchCount = 0;
-			int distinctIndex = state.DistinctIndex;
-			MatchPatternWhitespace(ref state, false, false);
-			do
-			{
-				subSuccess = false;
-				bool individualSuccess;
-				individualSuccess = MatchFragmentRule(ref state, matchData);
-				subSuccess |= individualSuccess;
-				if (individualSuccess)
-				{
-					matchCount++;
-					distinctIndex = state.DistinctIndex;
-					(delimiterSuccess, range) = MatchPatternWhitespace(ref state, false, false);
-					goto Break;
-				}
-
-			Break:
-				overallSuccess |= subSuccess;
-			}
-			while (subSuccess && delimiterSuccess);
-			if (delimiterSuccess && range != null)
-			{
-				state.CurrentIndex = range.StartIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (overallSuccess)
-			{
-				MatchPatternWhitespace(ref state, false, false);
-			}
-
-			bool thresholdSuccess = 1 <= matchCount;
-			bool success = overallSuccess || thresholdSuccess;
-			if (!success)
-			{
-				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
-			}
-
-			return success;
-		}
-
-		private bool MatchFragmentRules(ref State state, FragmentMatchData matchData)
-		{
-			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			int startIndex = state.CurrentIndex;
-			int distinctIndex = state.DistinctIndex;
-			partMatcherData = new FragmentMatchData { Name = "Rules", StartIndex = state.CurrentIndex };
-			success = (MatchFragmentPartsMultipleModeRules(ref state, partMatcherData));
-			if (success)
-			{
-				partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;
-			}
-			else
-			{
-				state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;
-			}
-
-			if (success)
-			{
-				matchData.Parts.Add(partMatcherData);
-			}
-
-			return success;
-		}
-
-		private (bool success, int offset) MatchNot4(string text, int startOffset)
-		{
-			return text.Length > startOffset && !MatchLiteral45(text, startOffset).success ? (true, 0) : (false, 0);
-		}
-
-		private (bool success, int offset) MatchGroup8(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchLiteral35(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchNot4(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchAny(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchWildcard2(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success = true;
-			int subOffset;
-			while (success)
-			{
-				(success, subOffset) = MatchGroup8(text, offset);
-				offset += subOffset;
-			}
-
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchGroup9(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchLiteral44(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchLiteral35(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchWildcard2(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchLiteral35(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchLiteral45(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchLiteral20(string text, int startOffset)
-		{
-			string literal = "/";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, int offset) MatchLiteral22(string text, int startOffset)
-		{
-			string literal = "*/";
-			int length = literal.Length;
-			if (startOffset + length > text.Length)
-			{
-				return (false, 0);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				if (text[i + startOffset] != literal[i])
-				{
-					return (false, 0);
-				}
-			}
-
-			return (true, length);
-		}
-
-		private (bool success, int offset) MatchNot5(string text, int startOffset)
-		{
-			return text.Length > startOffset && !MatchLiteral22(text, startOffset).success ? (true, 0) : (false, 0);
-		}
-
-		private (bool success, int offset) MatchGroup10(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchNot5(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchAny(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchWildcard3(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success = true;
-			int subOffset;
-			while (success)
-			{
-				(success, subOffset) = MatchGroup10(text, offset);
-				offset += subOffset;
-			}
-
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchGroup11(string text, int startOffset)
-		{
-			int offset = startOffset;
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchLiteral20(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchLiteral35(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchWildcard3(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			(success, subOffset) = MatchLiteral22(text, offset);
-			if (!success)
-			{
-				return (false, 0);
-			}
-
-			offset += subOffset;
-			return (true, offset - startOffset);
-		}
-
-		private (bool success, int offset) MatchOr2(string text, int startOffset)
-		{
-			bool success;
-			int subOffset;
-			(success, subOffset) = MatchGroup9(text, startOffset);
-			if (success)
-			{
-				return (true, subOffset);
-			}
-
-			(success, subOffset) = MatchGroup11(text, startOffset);
-			return success ? (true, subOffset) : (false, 0);
-		}
-
-		private (bool success, StringMatchData matchData) MatchPatternComment(ref State state, bool required, bool readOnly = false)
-		{
-		Rerun:
-			bool success = false;
-			int distinctIndex = state.DistinctIndex;
-			if (distinctIndex >= state.MaxDistinctIndex)
-			{
-				int length;
-				int startOffset = state.CurrentIndex;
-				(success, length) = MatchOr2(state.Code, state.CurrentIndex);
-				StringMatchData stringMatchData = default;
-				if (success)
-				{
-					stringMatchData = new StringMatchData { Name = "Comment", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = true, Id = 5 };
-					state.DistinctStringMatches.Add(stringMatchData);
-					success = stringMatchData != null;
-					if (!readOnly)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-					}
-				}
-				else if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-			else
-			{
-				StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
-				if (stringMatchData != null)
-				{
-					success = stringMatchData.Id != 5;
-					if (stringMatchData.IsNoise)
-					{
-						state.DistinctIndex++;
-						state.CurrentIndex += stringMatchData.Length;
-						goto Rerun;
-					}
-
-					success = stringMatchData.Id == 5;
-				}
-				else
-				{
-					if (state.CheckFlags[5] < distinctIndex + 1)
-					{
-						int length;
-						int startOffset = state.CurrentIndex;
-						(success, length) = MatchOr2(state.Code, state.CurrentIndex);
-						if (success)
-						{
-							stringMatchData = new StringMatchData { Name = "Comment", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = true, Id = 5 };
-							state.DistinctStringMatches[distinctIndex] = stringMatchData;
-						}
-
-						state.CheckFlags[5] = distinctIndex + 1;
-					}
-				}
-
-				if (success && !readOnly)
-				{
-					state.DistinctIndex++;
-					state.CurrentIndex += stringMatchData.Length;
-				}
-
-				if (!required)
-				{
-					success = true;
-				}
-
-				return (success, stringMatchData);
-			}
-		}
-	}
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0059:Unnecessary assignment of a value", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0046:Convert to conditional expression", Justification = "<Pending>")]
+    public class EbnfMatchEngine : AbstractLanguageMatchEngine
+    {
+        public override MatcherResult Match(string code, string fragmentMatcher, bool matchFullText = true)
+        {
+            FragmentMatchData matchData = new FragmentMatchData { StartIndex = 0 };
+            State state = new State()
+            { Code = code, DistinctStringMatches = new List<StringMatchData>(2000), MatchCache = new Dictionary<ValueTuple<string, int>, FragmentMatchData>() };
+            PreMatchPatterns(ref state);
+            bool success = false;
+            switch (fragmentMatcher)
+            {
+                case "Rules":
+                    success = MatchFragmentRules(ref state, matchData);
+                    break;
+                case "NotRulePrefix":
+                    success = MatchFragmentNotRulePrefix(ref state, matchData);
+                    break;
+                case "RuleName":
+                    success = MatchFragmentRuleName(ref state, matchData);
+                    break;
+                case "Rule":
+                    success = MatchFragmentRule(ref state, matchData);
+                    break;
+                case "Expression":
+                    success = MatchFragmentExpression(ref state, matchData);
+                    break;
+                case "RepetitionSuffix":
+                    success = MatchFragmentRepetitionSuffix(ref state, matchData);
+                    break;
+                case "ExceptSuffix":
+                    success = MatchFragmentExceptSuffix(ref state, matchData);
+                    break;
+                case "CommaSuffix":
+                    success = MatchFragmentCommaSuffix(ref state, matchData);
+                    break;
+                case "OrSuffix":
+                    success = MatchFragmentOrSuffix(ref state, matchData);
+                    break;
+                case "OptionalComma":
+                    success = MatchFragmentOptionalComma(ref state, matchData);
+                    break;
+                case "RepetitionGroup":
+                    success = MatchFragmentRepetitionGroup(ref state, matchData);
+                    break;
+                case "OptionalGroup":
+                    success = MatchFragmentOptionalGroup(ref state, matchData);
+                    break;
+                case "ZeroOrOneItem":
+                    success = MatchFragmentZeroOrOneItem(ref state, matchData);
+                    break;
+                case "OneOrMoreItem":
+                    success = MatchFragmentOneOrMoreItem(ref state, matchData);
+                    break;
+                case "ZeroOrMoreItem":
+                    success = MatchFragmentZeroOrMoreItem(ref state, matchData);
+                    break;
+                case "Item":
+                    success = MatchFragmentItem(ref state, matchData);
+                    break;
+            }
+
+            IMatchData resultMatchData = matchData.Parts.FirstOrDefault();
+            int? failureIndex = success ? null : state.FailureIndex;
+            if (success && matchFullText && state.CurrentIndex != state.Code.Length)
+            {
+                success = false;
+                failureIndex = state.CurrentIndex;
+            }
+
+            return new MatcherResult(resultMatchData, success, state.CurrentIndex, failureIndex, state.MatchLogBuilder?.ToString());
+        }
+
+        public override MatcherResult Match(string code, bool matchFullText = true)
+        {
+            FragmentMatchData matchData = new FragmentMatchData { StartIndex = 0 };
+            State state = new State()
+            { Code = code, DistinctStringMatches = new List<StringMatchData>(2000), MatchCache = new Dictionary<ValueTuple<string, int>, FragmentMatchData>() };
+            PreMatchPatterns(ref state);
+            bool success = MatchFragmentRules(ref state, matchData);
+            IMatchData resultMatchData = matchData?.Parts.FirstOrDefault();
+            int? failureIndex = success ? null : state.FailureIndex;
+            if (success && matchFullText && state.CurrentIndex != state.Code.Length)
+            {
+                success = false;
+                failureIndex = state.CurrentIndex;
+            }
+
+            return new MatcherResult(resultMatchData, success, state.CurrentIndex, failureIndex, state.MatchLogBuilder?.ToString());
+        }
+
+        private bool PreMatchPatterns(ref State state)
+        {
+            int codeLength = state.Code.Length;
+            bool success = true;
+            while (state.CurrentIndex < codeLength)
+            {
+                success = false;
+                success = MatchPatternNumber(ref state, true, false).success || MatchPatternDoubleQuoteLiteral(ref state, true, false).success || MatchPatternSingleQuoteLiteral(ref state, true, false).success || MatchPatternSpecialGroup(ref state, true, false).success || MatchPatternComment(ref state, true, false).success || MatchPatternIs(ref state, true, false).success || MatchPatternRuleName(ref state, true, false).success || MatchPatternOr(ref state, true, false).success || MatchPatternAsterisk(ref state, true, false).success || MatchPatternPlus(ref state, true, false).success || MatchPatternQuestionMark(ref state, true, false).success || MatchPatternSemicolon(ref state, true, false).success || MatchPatternPeriod(ref state, true, false).success || MatchPatternOpenBrace(ref state, true, false).success || MatchPatternCloseBrace(ref state, true, false).success || MatchPatternOpenBracket(ref state, true, false).success || MatchPatternCloseBracket(ref state, true, false).success || MatchPatternOpenParens(ref state, true, false).success || MatchPatternCloseParens(ref state, true, false).success || MatchPatternWhitespace(ref state, true, false).success || MatchPatternComma(ref state, true, false).success || MatchPatternHexChar(ref state, true, false).success || MatchPatternDash(ref state, true, false).success;
+                if (!success)
+                {
+                    break;
+                }
+            }
+
+            state.CurrentIndex = 0;
+            state.DistinctIndex = 0;
+            return success;
+        }
+
+        private (bool success, int offset) MatchOneOrMore2(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool subSuccess = true;
+            bool success = false;
+            int subOffset;
+            while (subSuccess)
+            {
+                (subSuccess, subOffset) = MatchWhitespace(text, offset);
+                offset += subOffset;
+                success |= subSuccess;
+            }
+
+            return success ? (true, offset - startOffset) : (false, 0);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternWhitespace(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchOneOrMore2(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "Whitespace", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 20 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 20;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 20;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchOneOrMore2(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "Whitespace", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 20 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private (bool success, int offset) MatchLiteral28(string text, int startOffset)
+        {
+            string literal = "<";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, int offset) MatchLiteral29(string text, int startOffset)
+        {
+            string literal = "-";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, int offset) MatchLiteral30(string text, int startOffset)
+        {
+            string literal = "_";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, int offset) MatchOr4(string text, int startOffset)
+        {
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchWordChar(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            (success, subOffset) = MatchLiteral29(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            (success, subOffset) = MatchLiteral30(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            return (false, 0);
+        }
+
+        private (bool success, int offset) MatchWildcard4(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success = true;
+            int subOffset;
+            while (success)
+            {
+                (success, subOffset) = MatchOr4(text, offset);
+                offset += subOffset;
+            }
+
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchLiteral31(string text, int startOffset)
+        {
+            string literal = ">";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, int offset) MatchGroup12(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchLiteral28(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchLetter(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchWildcard4(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchLiteral31(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchGroup13(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchLetter(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchWildcard4(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchOr6(string text, int startOffset)
+        {
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchGroup12(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            (success, subOffset) = MatchGroup13(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            return (false, 0);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternRuleName(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchOr6(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "RuleName", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 7 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 7;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 7;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchOr6(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "RuleName", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 7 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchPartByTextMatcherRuleName(ref State state, FragmentMatchData matchData)
+        {
+            (bool success, StringMatchData partMatchData) = MatchPatternRuleName(ref state, true, false);
+            if (success)
+            {
+                matchData.Parts.Add(partMatchData);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsOneModeRuleName(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            int matchCount = 0;
+            success = MatchPartByTextMatcherRuleName(ref state, matchData);
+            if (success)
+            {
+                matchCount++;
+            }
+
+            success = false || matchCount > 0;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentRuleName(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            if (!state.MatchCache.TryGetValue(new ValueTuple<string, int>("RuleName", state.CurrentIndex), out FragmentMatchData partMatcherData))
+            {
+                int startIndex = state.CurrentIndex;
+                int distinctIndex = state.DistinctIndex;
+                partMatcherData = new FragmentMatchData { Name = "RuleName", StartIndex = state.CurrentIndex };
+                success = (MatchFragmentPartsOneModeRuleName(ref state, partMatcherData));
+                if (success)
+                {
+                    partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                    partMatcherData.EndDistinctIndex = state.DistinctIndex;
+                    state.MatchCache[new ValueTuple<string, int>("RuleName", startIndex)] = partMatcherData;
+                }
+                else
+                {
+                    state.MatchCache[new ValueTuple<string, int>("RuleName", startIndex)] = null;
+                    state.CurrentIndex = startIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+            }
+            else if (success = partMatcherData != null)
+            {
+                state.CurrentIndex = partMatcherData.StartIndex + partMatcherData.Length;
+                state.DistinctIndex = partMatcherData.EndDistinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsOneModeRulePrefix(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            int matchCount = 0;
+            MatchPatternWhitespace(ref state, false, false);
+            success = MatchFragmentRuleName(ref state, matchData);
+            if (success)
+            {
+                matchCount++;
+            }
+
+            if (success)
+            {
+                MatchPatternWhitespace(ref state, false, false);
+            }
+
+            success = false || matchCount > 0;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral24(string text, int startOffset)
+        {
+            string literal = "::=";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, int offset) MatchLiteral25(string text, int startOffset)
+        {
+            string literal = ":=";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, int offset) MatchLiteral26(string text, int startOffset)
+        {
+            string literal = ":";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, int offset) MatchLiteral27(string text, int startOffset)
+        {
+            string literal = "=";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, int offset) MatchOr3(string text, int startOffset)
+        {
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchLiteral24(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            (success, subOffset) = MatchLiteral25(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            (success, subOffset) = MatchLiteral26(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            (success, subOffset) = MatchLiteral27(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            return (false, 0);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternIs(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchOr3(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "Is", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 6 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 6;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 6;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchOr3(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "Is", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 6 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchFragmentBoundsIs(ref State state, bool readOnly, out StringMatchData matchData)
+        {
+            bool success;
+            (success, matchData) = MatchPatternIs(ref state, true, readOnly);
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentRulePrefix(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            if (!state.MatchCache.TryGetValue(new ValueTuple<string, int>("RulePrefix", state.CurrentIndex), out FragmentMatchData partMatcherData))
+            {
+                int startIndex = state.CurrentIndex;
+                int distinctIndex = state.DistinctIndex;
+                partMatcherData = new FragmentMatchData { Name = "RulePrefix", StartIndex = state.CurrentIndex };
+                success = (MatchFragmentPartsOneModeRulePrefix(ref state, partMatcherData) && MatchFragmentBoundsIs(ref state, false, out StringMatchData endMatchData));
+                if (success)
+                {
+                    partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                    partMatcherData.EndDistinctIndex = state.DistinctIndex;
+                    state.MatchCache[new ValueTuple<string, int>("RulePrefix", startIndex)] = partMatcherData;
+                }
+                else
+                {
+                    state.MatchCache[new ValueTuple<string, int>("RulePrefix", startIndex)] = null;
+                    state.CurrentIndex = startIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+            }
+            else if (success = partMatcherData != null)
+            {
+                state.CurrentIndex = partMatcherData.StartIndex + partMatcherData.Length;
+                state.DistinctIndex = partMatcherData.EndDistinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.AddRange(partMatcherData.Parts);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral0(string text, int startOffset)
+        {
+            string literal = "\"";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, int offset) MatchNot0(string text, int startOffset)
+        {
+            return text.Length > startOffset && !MatchLiteral0(text, startOffset).success ? (true, 0) : (false, 0);
+        }
+
+        private (bool success, int offset) MatchGroup0(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchNot0(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchAny(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchWildcard0(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success = true;
+            int subOffset;
+            while (success)
+            {
+                (success, subOffset) = MatchGroup0(text, offset);
+                offset += subOffset;
+            }
+
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchGroup1(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchLiteral0(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchWildcard0(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchLiteral0(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternDoubleQuoteLiteral(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchGroup1(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "DoubleQuoteLiteral", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 2 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 2;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 2;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchGroup1(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "DoubleQuoteLiteral", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 2 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchPartByTextMatcherDoubleQuoteLiteral(ref State state, FragmentMatchData matchData)
+        {
+            (bool success, StringMatchData partMatchData) = MatchPatternDoubleQuoteLiteral(ref state, true, false);
+            if (success)
+            {
+                matchData.Parts.Add(partMatchData);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral3(string text, int startOffset)
+        {
+            string literal = "'";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, int offset) MatchNot1(string text, int startOffset)
+        {
+            return text.Length > startOffset && !MatchLiteral3(text, startOffset).success ? (true, 0) : (false, 0);
+        }
+
+        private (bool success, int offset) MatchGroup2(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchNot1(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchAny(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchWildcard1(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success = true;
+            int subOffset;
+            while (success)
+            {
+                (success, subOffset) = MatchGroup2(text, offset);
+                offset += subOffset;
+            }
+
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchGroup3(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchLiteral3(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchWildcard1(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchLiteral3(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternSingleQuoteLiteral(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchGroup3(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "SingleQuoteLiteral", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 3 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 3;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 3;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchGroup3(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "SingleQuoteLiteral", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 3 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchPartByTextMatcherSingleQuoteLiteral(ref State state, FragmentMatchData matchData)
+        {
+            (bool success, StringMatchData partMatchData) = MatchPatternSingleQuoteLiteral(ref state, true, false);
+            if (success)
+            {
+                matchData.Parts.Add(partMatchData);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral44(string text, int startOffset)
+        {
+            string literal = "(";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternOpenParens(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchLiteral44(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "OpenParens", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 18 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 18;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 18;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchLiteral44(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "OpenParens", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 18 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchFragmentBoundsOpenParens(ref State state, bool readOnly, out StringMatchData matchData)
+        {
+            bool success;
+            (success, matchData) = MatchPatternOpenParens(ref state, true, readOnly);
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsOneModeExpressionGroup(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            int matchCount = 0;
+            MatchPatternWhitespace(ref state, false, false);
+            success = MatchFragmentExpression(ref state, matchData);
+            if (success)
+            {
+                matchCount++;
+            }
+
+            if (success)
+            {
+                MatchPatternWhitespace(ref state, false, false);
+            }
+
+            success = false || matchCount > 0;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral45(string text, int startOffset)
+        {
+            string literal = ")";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternCloseParens(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchLiteral45(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "CloseParens", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 19 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 19;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 19;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchLiteral45(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "CloseParens", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 19 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchFragmentBoundsCloseParens(ref State state, bool readOnly, out StringMatchData matchData)
+        {
+            bool success;
+            (success, matchData) = MatchPatternCloseParens(ref state, true, readOnly);
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentExpressionGroup(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "ExpressionGroup", StartIndex = state.CurrentIndex };
+            success = (MatchFragmentBoundsOpenParens(ref state, false, out StringMatchData startMatchData) && MatchFragmentPartsOneModeExpressionGroup(ref state, partMatcherData) && MatchFragmentBoundsCloseParens(ref state, false, out StringMatchData endMatchData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.AddRange(partMatcherData.Parts);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral40(string text, int startOffset)
+        {
+            string literal = "{";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternOpenBrace(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchLiteral40(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "OpenBrace", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 14 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 14;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 14;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchLiteral40(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "OpenBrace", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 14 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchFragmentBoundsOpenBrace(ref State state, bool readOnly, out StringMatchData matchData)
+        {
+            bool success;
+            (success, matchData) = MatchPatternOpenBrace(ref state, true, readOnly);
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral41(string text, int startOffset)
+        {
+            string literal = "}";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternCloseBrace(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchLiteral41(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "CloseBrace", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 15 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 15;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 15;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchLiteral41(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "CloseBrace", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 15 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchFragmentBoundsCloseBrace(ref State state, bool readOnly, out StringMatchData matchData)
+        {
+            bool success;
+            (success, matchData) = MatchPatternCloseBrace(ref state, true, readOnly);
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentRepetitionGroup(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "RepetitionGroup", StartIndex = state.CurrentIndex };
+            success = (MatchFragmentBoundsOpenBrace(ref state, false, out StringMatchData startMatchData) && MatchFragmentPartsOneModeExpressionGroup(ref state, partMatcherData) && MatchFragmentBoundsCloseBrace(ref state, false, out StringMatchData endMatchData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral42(string text, int startOffset)
+        {
+            string literal = "[";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternOpenBracket(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchLiteral42(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "OpenBracket", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 16 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 16;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 16;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchLiteral42(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "OpenBracket", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 16 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchFragmentBoundsOpenBracket(ref State state, bool readOnly, out StringMatchData matchData)
+        {
+            bool success;
+            (success, matchData) = MatchPatternOpenBracket(ref state, true, readOnly);
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral43(string text, int startOffset)
+        {
+            string literal = "]";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternCloseBracket(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchLiteral43(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "CloseBracket", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 17 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 17;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 17;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchLiteral43(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "CloseBracket", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 17 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchFragmentBoundsCloseBracket(ref State state, bool readOnly, out StringMatchData matchData)
+        {
+            bool success;
+            (success, matchData) = MatchPatternCloseBracket(ref state, true, readOnly);
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentOptionalGroup(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "OptionalGroup", StartIndex = state.CurrentIndex };
+            success = (MatchFragmentBoundsOpenBracket(ref state, false, out _) && MatchFragmentPartsOneModeExpressionGroup(ref state, partMatcherData) && MatchFragmentBoundsCloseBracket(ref state, false, out _));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchNot2(string text, int startOffset)
+        {
+            return text.Length > startOffset && !MatchLiteral42(text, startOffset).success ? (true, 0) : (false, 0);
+        }
+
+        private (bool success, int offset) MatchNot3(string text, int startOffset)
+        {
+            return text.Length > startOffset && !MatchLiteral43(text, startOffset).success ? (true, 0) : (false, 0);
+        }
+
+        private (bool success, int offset) MatchGroup4(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchNot2(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchNot3(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchAny(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchLiteral9(string text, int startOffset)
+        {
+            string literal = "\\";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, int offset) MatchGroup5(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchLiteral9(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchLiteral42(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchGroup6(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchLiteral9(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchLiteral43(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchOr0(string text, int startOffset)
+        {
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchGroup5(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            (success, subOffset) = MatchGroup6(text, startOffset);
+            return success ? (true, subOffset) : (false, 0);
+        }
+
+        private (bool success, int offset) MatchOr1(string text, int startOffset)
+        {
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchGroup4(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            (success, subOffset) = MatchOr0(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            return (false, 0);
+        }
+
+        private (bool success, int offset) MatchOneOrMore1(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool subSuccess = true;
+            bool success = false;
+            int subOffset;
+            while (subSuccess)
+            {
+                (subSuccess, subOffset) = MatchOr1(text, offset);
+                offset += subOffset;
+                success |= subSuccess;
+            }
+
+            return success ? (true, offset - startOffset) : (false, 0);
+        }
+
+        private (bool success, int offset) MatchGroup7(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchLiteral42(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchOneOrMore1(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchLiteral43(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternSpecialGroup(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchGroup7(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "SpecialGroup", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 4 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 4;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 4;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchGroup7(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "SpecialGroup", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 4 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchPartByTextMatcherSpecialGroup(ref State state, FragmentMatchData matchData)
+        {
+            (bool success, StringMatchData partMatchData) = MatchPatternSpecialGroup(ref state, true, false);
+            if (success)
+            {
+                matchData.Parts.Add(partMatchData);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchInsensitiveLiteral0(string text, int startOffset)
+        {
+            string literal = "#x";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (char.ToLowerInvariant(text[i + startOffset]) != char.ToLowerInvariant(literal[i]))
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, int offset) MatchCharBounds0(string text, int startOffset)
+        {
+            int charVal = text[startOffset];
+            return (97 <= charVal && 102 >= charVal) ? (true, 1) : (false, 0);
+        }
+
+        private (bool success, int offset) MatchCharBounds1(string text, int startOffset)
+        {
+            int charVal = text[startOffset];
+            return (65 <= charVal && 70 >= charVal) ? (true, 1) : (false, 0);
+        }
+
+        private (bool success, int offset) MatchCharBounds2(string text, int startOffset)
+        {
+            int charVal = text[startOffset];
+            return (48 <= charVal && 57 >= charVal) ? (true, 1) : (false, 0);
+        }
+
+        private (bool success, int offset) MatchOr7(string text, int startOffset)
+        {
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchCharBounds0(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            (success, subOffset) = MatchCharBounds1(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            (success, subOffset) = MatchCharBounds2(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            return (false, 0);
+        }
+
+        private (bool success, int offset) MatchCountBounds0(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool subSuccess = true;
+            int subOffset;
+            int matches = 0;
+            for (; matches < 4 && subSuccess; matches++)
+            {
+                (subSuccess, subOffset) = MatchOr7(text, offset);
+                offset += subOffset;
+            }
+
+            bool success = subSuccess || matches >= 1;
+            return success ? (true, offset - startOffset) : (false, 0);
+        }
+
+        private (bool success, int offset) MatchGroup14(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchInsensitiveLiteral0(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchCountBounds0(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternHexChar(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchGroup14(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "HexChar", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 22 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 22;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 22;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchGroup14(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "HexChar", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 22 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchPartByTextMatcherHexChar(ref State state, FragmentMatchData matchData)
+        {
+            (bool success, StringMatchData partMatchData) = MatchPatternHexChar(ref state, true, false);
+            if (success)
+            {
+                matchData.Parts.Add(partMatchData);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchOneOrMore0(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool subSuccess = true;
+            bool success = false;
+            int subOffset;
+            while (subSuccess)
+            {
+                (subSuccess, subOffset) = MatchDigit(text, offset);
+                offset += subOffset;
+                success |= subSuccess;
+            }
+
+            return success ? (true, offset - startOffset) : (false, 0);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternNumber(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchOneOrMore0(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "Number", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 1 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 1;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 1;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchOneOrMore0(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "Number", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 1 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchPartByTextMatcherNumber(ref State state, FragmentMatchData matchData)
+        {
+            (bool success, StringMatchData partMatchData) = MatchPatternNumber(ref state, true, false);
+            if (success)
+            {
+                matchData.Parts.Add(partMatchData);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsOneModeItem(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            int matchCount = 0;
+            success = MatchPartByTextMatcherDoubleQuoteLiteral(ref state, matchData) || MatchPartByTextMatcherSingleQuoteLiteral(ref state, matchData) || MatchFragmentExpressionGroup(ref state, matchData) || MatchFragmentRepetitionGroup(ref state, matchData) || MatchFragmentOptionalGroup(ref state, matchData) || MatchPartByTextMatcherSpecialGroup(ref state, matchData) || MatchFragmentRuleName(ref state, matchData) || MatchPartByTextMatcherHexChar(ref state, matchData) || MatchPartByTextMatcherNumber(ref state, matchData);
+            if (success)
+            {
+                matchCount++;
+            }
+
+            success = false || matchCount > 0;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentItem(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            if (!state.MatchCache.TryGetValue(new ValueTuple<string, int>("Item", state.CurrentIndex), out FragmentMatchData partMatcherData))
+            {
+                int startIndex = state.CurrentIndex;
+                int distinctIndex = state.DistinctIndex;
+                partMatcherData = new FragmentMatchData { Name = "Item", StartIndex = state.CurrentIndex };
+                success = (MatchFragmentPartsOneModeItem(ref state, partMatcherData));
+                if (success)
+                {
+                    partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                    partMatcherData.EndDistinctIndex = state.DistinctIndex;
+                    state.MatchCache[new ValueTuple<string, int>("Item", startIndex)] = partMatcherData;
+                }
+                else
+                {
+                    state.MatchCache[new ValueTuple<string, int>("Item", startIndex)] = null;
+                    state.CurrentIndex = startIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+            }
+            else if (success = partMatcherData != null)
+            {
+                state.CurrentIndex = partMatcherData.StartIndex + partMatcherData.Length;
+                state.DistinctIndex = partMatcherData.EndDistinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsOneModeZeroOrOneItem(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            int matchCount = 0;
+            success = MatchFragmentItem(ref state, matchData);
+            if (success)
+            {
+                matchCount++;
+            }
+
+            success = false || matchCount > 0;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral37(string text, int startOffset)
+        {
+            string literal = "?";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternQuestionMark(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchLiteral37(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "QuestionMark", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 11 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 11;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 11;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchLiteral37(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "QuestionMark", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 11 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchFragmentBoundsQuestionMark(ref State state, bool readOnly, out StringMatchData matchData)
+        {
+            bool success;
+            (success, matchData) = MatchPatternQuestionMark(ref state, true, readOnly);
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentZeroOrOneItem(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "ZeroOrOneItem", StartIndex = state.CurrentIndex };
+            success = (MatchFragmentPartsOneModeZeroOrOneItem(ref state, partMatcherData) && MatchFragmentBoundsQuestionMark(ref state, false, out StringMatchData endMatchData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral36(string text, int startOffset)
+        {
+            string literal = "+";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternPlus(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchLiteral36(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "Plus", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 10 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 10;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 10;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchLiteral36(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "Plus", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 10 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchFragmentBoundsPlus(ref State state, bool readOnly, out StringMatchData matchData)
+        {
+            bool success;
+            (success, matchData) = MatchPatternPlus(ref state, true, readOnly);
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentOneOrMoreItem(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "OneOrMoreItem", StartIndex = state.CurrentIndex };
+            success = (MatchFragmentPartsOneModeZeroOrOneItem(ref state, partMatcherData) && MatchFragmentBoundsPlus(ref state, false, out StringMatchData endMatchData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral35(string text, int startOffset)
+        {
+            string literal = "*";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternAsterisk(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchLiteral35(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "Asterisk", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 9 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 9;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 9;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchLiteral35(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "Asterisk", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 9 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchFragmentBoundsAsterisk(ref State state, bool readOnly, out StringMatchData matchData)
+        {
+            bool success;
+            (success, matchData) = MatchPatternAsterisk(ref state, true, readOnly);
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentZeroOrMoreItem(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "ZeroOrMoreItem", StartIndex = state.CurrentIndex };
+            success = (MatchFragmentPartsOneModeZeroOrOneItem(ref state, partMatcherData) && MatchFragmentBoundsAsterisk(ref state, false, out StringMatchData endMatchData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsOneModeExpressionValue(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            int matchCount = 0;
+            MatchPatternWhitespace(ref state, false, false);
+            success = MatchFragmentZeroOrOneItem(ref state, matchData) || MatchFragmentOneOrMoreItem(ref state, matchData) || MatchFragmentZeroOrMoreItem(ref state, matchData) || MatchFragmentItem(ref state, matchData);
+            if (success)
+            {
+                matchCount++;
+            }
+
+            if (success)
+            {
+                MatchPatternWhitespace(ref state, false, false);
+            }
+
+            success = false || matchCount > 0;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentExpressionValue(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "ExpressionValue", StartIndex = state.CurrentIndex };
+            success = (MatchFragmentPartsOneModeExpressionValue(ref state, partMatcherData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.AddRange(partMatcherData.Parts);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral34(string text, int startOffset)
+        {
+            string literal = "|";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternOr(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchLiteral34(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "Or", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 8 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 8;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 8;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchLiteral34(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "Or", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 8 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchPartByTextMatcherOr(ref State state, FragmentMatchData matchData)
+        {
+            (bool success, StringMatchData partMatchData) = MatchPatternOr(ref state, true, false);
+            if (success)
+            {
+                matchData.Parts.Add(partMatchData);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsOrderedModeOrSuffix(ref State state, FragmentMatchData matchData)
+        {
+            bool success = true;
+            bool partSuccess;
+            int matchCount = 0;
+            StringMatchData stringMatchData = null;
+            int distinctIndex = state.DistinctIndex;
+            MatchPatternWhitespace(ref state, false, false);
+            success = MatchPartByTextMatcherOr(ref state, matchData);
+            if (!success)
+            {
+                if (stringMatchData != null)
+                {
+                    state.CurrentIndex = stringMatchData.StartIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+
+                goto Break;
+            }
+            else
+            {
+                matchCount++;
+            }
+
+            distinctIndex = state.DistinctIndex;
+            (partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
+            success = partSuccess;
+            if (!success)
+            {
+                goto Break;
+            }
+
+            success = MatchFragmentExpressionValue(ref state, matchData);
+            if (!success)
+            {
+                if (stringMatchData != null)
+                {
+                    state.CurrentIndex = stringMatchData.StartIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+
+                goto Break;
+            }
+            else
+            {
+                matchCount++;
+            }
+
+        Break:
+            if (success)
+            {
+                MatchPatternWhitespace(ref state, false, false);
+            }
+
+            success = success || 2 <= matchCount;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentOrSuffix(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "OrSuffix", StartIndex = state.CurrentIndex, ExpressionOrder = 4 };
+            success = (MatchFragmentPartsOrderedModeOrSuffix(ref state, partMatcherData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+            }
+
+            return success;
+        }
+
+        private bool MatchPartByTextMatcherAsterisk(ref State state, FragmentMatchData matchData)
+        {
+            (bool success, StringMatchData partMatchData) = MatchPatternAsterisk(ref state, true, false);
+            if (success)
+            {
+                matchData.Parts.Add(partMatchData);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsOrderedModeRepetitionSuffix(ref State state, FragmentMatchData matchData)
+        {
+            bool success = true;
+            bool partSuccess;
+            int matchCount = 0;
+            StringMatchData stringMatchData = null;
+            int distinctIndex = state.DistinctIndex;
+            ;
+            success = MatchPartByTextMatcherAsterisk(ref state, matchData);
+            if (!success)
+            {
+                if (stringMatchData != null)
+                {
+                    state.CurrentIndex = stringMatchData.StartIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+
+                goto Break;
+            }
+            else
+            {
+                matchCount++;
+            }
+
+            distinctIndex = state.DistinctIndex;
+            (partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
+            success = partSuccess;
+            if (!success)
+            {
+                goto Break;
+            }
+
+            success = MatchFragmentExpressionValue(ref state, matchData);
+            if (!success)
+            {
+                if (stringMatchData != null)
+                {
+                    state.CurrentIndex = stringMatchData.StartIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+
+                goto Break;
+            }
+            else
+            {
+                matchCount++;
+            }
+
+        Break:
+            success = success || 2 <= matchCount;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentRepetitionSuffix(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "RepetitionSuffix", StartIndex = state.CurrentIndex, ExpressionOrder = 1 };
+            success = (MatchFragmentPartsOrderedModeRepetitionSuffix(ref state, partMatcherData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+            }
+
+            return success;
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternDash(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchLiteral29(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "Dash", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 23 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 23;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 23;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchLiteral29(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "Dash", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 23 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchPartByTextMatcherDash(ref State state, FragmentMatchData matchData)
+        {
+            (bool success, StringMatchData partMatchData) = MatchPatternDash(ref state, true, false);
+            if (success)
+            {
+                matchData.Parts.Add(partMatchData);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsOrderedModeExceptSuffix(ref State state, FragmentMatchData matchData)
+        {
+            bool success = true;
+            bool partSuccess;
+            int matchCount = 0;
+            StringMatchData stringMatchData = null;
+            int distinctIndex = state.DistinctIndex;
+            ;
+            success = MatchPartByTextMatcherDash(ref state, matchData);
+            if (!success)
+            {
+                if (stringMatchData != null)
+                {
+                    state.CurrentIndex = stringMatchData.StartIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+
+                goto Break;
+            }
+            else
+            {
+                matchCount++;
+            }
+
+            distinctIndex = state.DistinctIndex;
+            (partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
+            success = partSuccess;
+            if (!success)
+            {
+                goto Break;
+            }
+
+            success = MatchFragmentExpressionValue(ref state, matchData);
+            if (!success)
+            {
+                if (stringMatchData != null)
+                {
+                    state.CurrentIndex = stringMatchData.StartIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+
+                goto Break;
+            }
+            else
+            {
+                matchCount++;
+            }
+
+        Break:
+            success = success || 2 <= matchCount;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentExceptSuffix(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "ExceptSuffix", StartIndex = state.CurrentIndex, ExpressionOrder = 2 };
+            success = (MatchFragmentPartsOrderedModeExceptSuffix(ref state, partMatcherData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral46(string text, int startOffset)
+        {
+            string literal = ",";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternComma(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchLiteral46(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "Comma", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 21 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 21;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 21;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchLiteral46(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "Comma", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 21 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchPartByTextMatcherComma(ref State state, FragmentMatchData matchData)
+        {
+            (bool success, StringMatchData partMatchData) = MatchPatternComma(ref state, true, false);
+            if (success)
+            {
+                matchData.Parts.Add(partMatchData);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsOneModeOptionalComma(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            int matchCount = 0;
+            success = MatchPartByTextMatcherComma(ref state, matchData);
+            if (success)
+            {
+                matchCount++;
+            }
+
+            success = true || matchCount > 0;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentOptionalComma(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "OptionalComma", StartIndex = state.CurrentIndex };
+            success = (MatchFragmentPartsOneModeOptionalComma(ref state, partMatcherData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsOneModeNotRulePrefix(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            int matchCount = 0;
+            success = MatchFragmentRulePrefix(ref state, matchData);
+            if (success)
+            {
+                matchCount++;
+            }
+
+            success = false || matchCount > 0;
+            if (success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentNotRulePrefix(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "NotRulePrefix", StartIndex = state.CurrentIndex };
+            success = (MatchFragmentPartsOneModeNotRulePrefix(ref state, partMatcherData));
+            if (success)
+            {
+            }
+            else
+            {
+            }
+
+            state.CurrentIndex = startIndex;
+            state.DistinctIndex = distinctIndex;
+            return !success;
+        }
+
+        private bool MatchFragmentPartsOrderedModeCommaSuffix(ref State state, FragmentMatchData matchData)
+        {
+            bool success = true;
+            bool partSuccess;
+            int matchCount = 0;
+            StringMatchData stringMatchData = null;
+            int distinctIndex = state.DistinctIndex;
+            ;
+            success = MatchFragmentOptionalComma(ref state, matchData);
+            if (!success)
+            {
+                if (stringMatchData != null)
+                {
+                    state.CurrentIndex = stringMatchData.StartIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+
+                goto Break;
+            }
+            else
+            {
+                matchCount++;
+            }
+
+            distinctIndex = state.DistinctIndex;
+            (partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
+            success = partSuccess;
+            if (!success)
+            {
+                goto Break;
+            }
+
+            success = MatchFragmentNotRulePrefix(ref state, matchData);
+            if (!success)
+            {
+                if (stringMatchData != null)
+                {
+                    state.CurrentIndex = stringMatchData.StartIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+
+                goto Break;
+            }
+            else
+            {
+                matchCount++;
+            }
+
+            distinctIndex = state.DistinctIndex;
+            (partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
+            success = partSuccess;
+            if (!success)
+            {
+                goto Break;
+            }
+
+            success = MatchFragmentExpressionValue(ref state, matchData);
+            if (!success)
+            {
+                if (stringMatchData != null)
+                {
+                    state.CurrentIndex = stringMatchData.StartIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+
+                goto Break;
+            }
+            else
+            {
+                matchCount++;
+            }
+
+        Break:
+            success = success || 3 <= matchCount;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentCommaSuffix(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "CommaSuffix", StartIndex = state.CurrentIndex, ExpressionOrder = 3 };
+            success = (MatchFragmentPartsOrderedModeCommaSuffix(ref state, partMatcherData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsMultipleModeExpressionSuffix(ref State state, FragmentMatchData matchData)
+        {
+            bool overallSuccess = false;
+            bool subSuccess = false;
+            bool delimiterSuccess = false;
+            StringMatchData range = default;
+            int matchCount = 0;
+            int distinctIndex = state.DistinctIndex;
+            ;
+            do
+            {
+                subSuccess = false;
+                bool individualSuccess;
+                individualSuccess = MatchFragmentOrSuffix(ref state, matchData);
+                subSuccess |= individualSuccess;
+                if (individualSuccess)
+                {
+                    matchCount++;
+                    distinctIndex = state.DistinctIndex;
+                    (delimiterSuccess, range) = (true, null);
+                    goto Break;
+                }
+
+                individualSuccess = MatchFragmentRepetitionSuffix(ref state, matchData);
+                subSuccess |= individualSuccess;
+                if (individualSuccess)
+                {
+                    matchCount++;
+                    distinctIndex = state.DistinctIndex;
+                    (delimiterSuccess, range) = (true, null);
+                    goto Break;
+                }
+
+                individualSuccess = MatchFragmentExceptSuffix(ref state, matchData);
+                subSuccess |= individualSuccess;
+                if (individualSuccess)
+                {
+                    matchCount++;
+                    distinctIndex = state.DistinctIndex;
+                    (delimiterSuccess, range) = (true, null);
+                    goto Break;
+                }
+
+                individualSuccess = MatchFragmentCommaSuffix(ref state, matchData);
+                subSuccess |= individualSuccess;
+                if (individualSuccess)
+                {
+                    matchCount++;
+                    distinctIndex = state.DistinctIndex;
+                    (delimiterSuccess, range) = (true, null);
+                    goto Break;
+                }
+
+            Break:
+                overallSuccess |= subSuccess;
+            }
+            while (subSuccess && delimiterSuccess);
+            if (delimiterSuccess && range != null)
+            {
+                state.CurrentIndex = range.StartIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            bool thresholdSuccess = 0 <= matchCount;
+            bool success = overallSuccess || thresholdSuccess;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentExpressionSuffix(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "ExpressionSuffix", StartIndex = state.CurrentIndex };
+            success = (MatchFragmentPartsMultipleModeExpressionSuffix(ref state, partMatcherData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.AddRange(partMatcherData.Parts);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsOrderedModeExpression(ref State state, FragmentMatchData matchData)
+        {
+            bool success = true;
+            bool partSuccess;
+            int matchCount = 0;
+            StringMatchData stringMatchData = null;
+            int distinctIndex = state.DistinctIndex;
+            MatchPatternWhitespace(ref state, false, false);
+            success = MatchFragmentExpressionValue(ref state, matchData);
+            if (!success)
+            {
+                if (stringMatchData != null)
+                {
+                    state.CurrentIndex = stringMatchData.StartIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+
+                goto Break;
+            }
+            else
+            {
+                matchCount++;
+            }
+
+            distinctIndex = state.DistinctIndex;
+            (partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
+            success = partSuccess;
+            if (!success)
+            {
+                goto Break;
+            }
+
+            success = MatchFragmentExpressionSuffix(ref state, matchData);
+            if (!success)
+            {
+                if (stringMatchData != null)
+                {
+                    state.CurrentIndex = stringMatchData.StartIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+
+                goto Break;
+            }
+            else
+            {
+                matchCount++;
+            }
+
+        Break:
+            if (success)
+            {
+                MatchPatternWhitespace(ref state, false, false);
+            }
+
+            success = success || 2 <= matchCount;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentExpression(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "Expression", StartIndex = state.CurrentIndex };
+            success = (MatchFragmentPartsOrderedModeExpression(ref state, partMatcherData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+                ConvertToExpressionTree(partMatcherData, ExpressionMode.LikeNameTree);
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral38(string text, int startOffset)
+        {
+            string literal = ";";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternSemicolon(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchLiteral38(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "Semicolon", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 12 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 12;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 12;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchLiteral38(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "Semicolon", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 12 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchPartByTextMatcherSemicolon(ref State state, FragmentMatchData matchData)
+        {
+            (bool success, StringMatchData partMatchData) = MatchPatternSemicolon(ref state, true, false);
+            if (success)
+            {
+                matchData.Parts.Add(partMatchData);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchLiteral39(string text, int startOffset)
+        {
+            string literal = ".";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternPeriod(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchLiteral39(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "Period", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 13 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 13;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 13;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchLiteral39(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "Period", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = false, Id = 13 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+
+        private bool MatchPartByTextMatcherPeriod(ref State state, FragmentMatchData matchData)
+        {
+            (bool success, StringMatchData partMatchData) = MatchPatternPeriod(ref state, true, false);
+            if (success)
+            {
+                matchData.Parts.Add(partMatchData);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsOneModeEndMark(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            int matchCount = 0;
+            success = MatchPartByTextMatcherSemicolon(ref state, matchData) || MatchPartByTextMatcherPeriod(ref state, matchData);
+            if (success)
+            {
+                matchCount++;
+            }
+
+            success = false || matchCount > 0;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentEndMark(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "EndMark", StartIndex = state.CurrentIndex };
+            success = (MatchFragmentPartsOneModeEndMark(ref state, partMatcherData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsOrderedModeRule(ref State state, FragmentMatchData matchData)
+        {
+            bool success = true;
+            bool partSuccess;
+            int matchCount = 0;
+            StringMatchData stringMatchData = null;
+            int distinctIndex = state.DistinctIndex;
+            ;
+            success = MatchFragmentRulePrefix(ref state, matchData);
+            if (!success)
+            {
+                if (stringMatchData != null)
+                {
+                    state.CurrentIndex = stringMatchData.StartIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+
+                goto Break;
+            }
+            else
+            {
+                matchCount++;
+            }
+
+            distinctIndex = state.DistinctIndex;
+            (partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
+            success = partSuccess;
+            if (!success)
+            {
+                goto Break;
+            }
+
+            success = MatchFragmentExpression(ref state, matchData);
+            if (!success)
+            {
+                if (stringMatchData != null)
+                {
+                    state.CurrentIndex = stringMatchData.StartIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+
+                goto Break;
+            }
+            else
+            {
+                matchCount++;
+            }
+
+            distinctIndex = state.DistinctIndex;
+            (partSuccess, stringMatchData) = MatchPatternWhitespace(ref state, false, false);
+            success = partSuccess;
+            if (!success)
+            {
+                goto Break;
+            }
+
+            success = MatchFragmentEndMark(ref state, matchData);
+            if (!success)
+            {
+                if (stringMatchData != null)
+                {
+                    state.CurrentIndex = stringMatchData.StartIndex;
+                    state.DistinctIndex = distinctIndex;
+                }
+
+                goto Break;
+            }
+            else
+            {
+                matchCount++;
+            }
+
+        Break:
+            success = success || 2 <= matchCount;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentRule(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "Rule", StartIndex = state.CurrentIndex };
+            success = (MatchFragmentPartsOrderedModeRule(ref state, partMatcherData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+                state.MatchCache.Clear();
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentPartsMultipleModeRules(ref State state, FragmentMatchData matchData)
+        {
+            bool overallSuccess = false;
+            bool subSuccess = false;
+            bool delimiterSuccess = false;
+            StringMatchData range = default;
+            int matchCount = 0;
+            int distinctIndex = state.DistinctIndex;
+            MatchPatternWhitespace(ref state, false, false);
+            do
+            {
+                subSuccess = false;
+                bool individualSuccess;
+                individualSuccess = MatchFragmentRule(ref state, matchData);
+                subSuccess |= individualSuccess;
+                if (individualSuccess)
+                {
+                    matchCount++;
+                    distinctIndex = state.DistinctIndex;
+                    (delimiterSuccess, range) = MatchPatternWhitespace(ref state, false, false);
+                    goto Break;
+                }
+
+            Break:
+                overallSuccess |= subSuccess;
+            }
+            while (subSuccess && delimiterSuccess);
+            if (delimiterSuccess && range != null)
+            {
+                state.CurrentIndex = range.StartIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (overallSuccess)
+            {
+                MatchPatternWhitespace(ref state, false, false);
+            }
+
+            bool thresholdSuccess = 1 <= matchCount;
+            bool success = overallSuccess || thresholdSuccess;
+            if (!success)
+            {
+                state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
+            }
+
+            return success;
+        }
+
+        private bool MatchFragmentRules(ref State state, FragmentMatchData matchData)
+        {
+            bool success = false;
+            FragmentMatchData partMatcherData = null;
+            int startIndex = state.CurrentIndex;
+            int distinctIndex = state.DistinctIndex;
+            partMatcherData = new FragmentMatchData { Name = "Rules", StartIndex = state.CurrentIndex };
+            success = (MatchFragmentPartsMultipleModeRules(ref state, partMatcherData));
+            if (success)
+            {
+                partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
+                partMatcherData.EndDistinctIndex = state.DistinctIndex;
+            }
+            else
+            {
+                state.CurrentIndex = startIndex;
+                state.DistinctIndex = distinctIndex;
+            }
+
+            if (success)
+            {
+                matchData.Parts.Add(partMatcherData);
+            }
+
+            return success;
+        }
+
+        private (bool success, int offset) MatchNot4(string text, int startOffset)
+        {
+            return text.Length > startOffset && !MatchLiteral45(text, startOffset).success ? (true, 0) : (false, 0);
+        }
+
+        private (bool success, int offset) MatchGroup8(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchLiteral35(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchNot4(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchAny(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchWildcard2(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success = true;
+            int subOffset;
+            while (success)
+            {
+                (success, subOffset) = MatchGroup8(text, offset);
+                offset += subOffset;
+            }
+
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchGroup9(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchLiteral44(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchLiteral35(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchWildcard2(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchLiteral35(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchLiteral45(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchLiteral20(string text, int startOffset)
+        {
+            string literal = "/";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, int offset) MatchLiteral22(string text, int startOffset)
+        {
+            string literal = "*/";
+            int length = literal.Length;
+            if (startOffset + length > text.Length)
+            {
+                return (false, 0);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                if (text[i + startOffset] != literal[i])
+                {
+                    return (false, 0);
+                }
+            }
+
+            return (true, length);
+        }
+
+        private (bool success, int offset) MatchNot5(string text, int startOffset)
+        {
+            return text.Length > startOffset && !MatchLiteral22(text, startOffset).success ? (true, 0) : (false, 0);
+        }
+
+        private (bool success, int offset) MatchGroup10(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchNot5(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchAny(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchWildcard3(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success = true;
+            int subOffset;
+            while (success)
+            {
+                (success, subOffset) = MatchGroup10(text, offset);
+                offset += subOffset;
+            }
+
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchGroup11(string text, int startOffset)
+        {
+            int offset = startOffset;
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchLiteral20(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchLiteral35(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchWildcard3(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            (success, subOffset) = MatchLiteral22(text, offset);
+            if (!success)
+            {
+                return (false, 0);
+            }
+
+            offset += subOffset;
+            return (true, offset - startOffset);
+        }
+
+        private (bool success, int offset) MatchOr2(string text, int startOffset)
+        {
+            bool success;
+            int subOffset;
+            (success, subOffset) = MatchGroup9(text, startOffset);
+            if (success)
+            {
+                return (true, subOffset);
+            }
+
+            (success, subOffset) = MatchGroup11(text, startOffset);
+            return success ? (true, subOffset) : (false, 0);
+        }
+
+        private (bool success, StringMatchData matchData) MatchPatternComment(ref State state, bool required, bool readOnly = false)
+        {
+        Rerun:
+            bool success = false;
+            int distinctIndex = state.DistinctIndex;
+            if (distinctIndex >= state.MaxDistinctIndex)
+            {
+                int length;
+                int startOffset = state.CurrentIndex;
+                (success, length) = MatchOr2(state.Code, state.CurrentIndex);
+                StringMatchData stringMatchData = default;
+                if (success)
+                {
+                    stringMatchData = new StringMatchData { Name = "Comment", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = true, Id = 5 };
+                    state.DistinctStringMatches.Add(stringMatchData);
+                    success = stringMatchData != null;
+                    if (!readOnly)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                    }
+                }
+                else if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+            else
+            {
+                StringMatchData stringMatchData = state.DistinctStringMatches[distinctIndex];
+                if (stringMatchData != null)
+                {
+                    success = stringMatchData.Id != 5;
+                    if (stringMatchData.IsNoise)
+                    {
+                        state.DistinctIndex++;
+                        state.CurrentIndex += stringMatchData.Length;
+                        goto Rerun;
+                    }
+
+                    success = stringMatchData.Id == 5;
+                }
+                else
+                {
+                    int length;
+                    int startOffset = state.CurrentIndex;
+                    (success, length) = MatchOr2(state.Code, state.CurrentIndex);
+                    if (success)
+                    {
+                        stringMatchData = new StringMatchData { Name = "Comment", Text = state.Code.Substring(startOffset, length), StartIndex = startOffset, Length = length, IsNoise = true, Id = 5 };
+                        state.DistinctStringMatches[distinctIndex] = stringMatchData;
+                    }
+                }
+
+                if (success && !readOnly)
+                {
+                    state.DistinctIndex++;
+                    state.CurrentIndex += stringMatchData.Length;
+                }
+
+                if (!required)
+                {
+                    success = true;
+                }
+
+                return (success, stringMatchData);
+            }
+        }
+    }
 }

@@ -59,7 +59,7 @@ namespace StaxeTests.TestComplexLang.Tests
 				ExternalDynamicPointers = NativeLocator.GetNativePointer,
 				ValueProvider = new ValueProvider()
 			};
-			PrintDiagnostics.EnableDiagnostics(code, executor, executionState, true);
+			//PrintDiagnostics.EnableDiagnostics(code, executor, executionState, true);
 
 			executor.Execute(executionState);
 

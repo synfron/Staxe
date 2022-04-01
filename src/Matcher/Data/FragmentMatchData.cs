@@ -22,7 +22,8 @@ namespace Synfron.Staxe.Matcher.Data
 			set;
 		}
 
-		public string ToXml()
+
+        public string ToXml()
 		{
 			return $"<{Name ?? string.Empty}>{string.Join("", Parts.Select(part => part.ToXml()))}</{Name ?? string.Empty}>";
 		}

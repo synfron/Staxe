@@ -1,5 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation and Joel Mueller licenses this file to you under the MIT license.
+// Heavily modified for use in Staxe (https://github.com/synfron/Staxe)
 // See the LICENSE file in the project root for more information.
 
 using System;
@@ -165,6 +166,23 @@ namespace Synfron.Staxe.Shared.Collections
 				_version++;
 			}
 		}
+		public void InsertRange(int index, StackList<T> items)
+		{
+			// Note that insertions at the end are legal.
+			if ((uint)index > (uint)_size)
+			{
+				throw new ArgumentOutOfRangeException("argument", "Insertion index was out of the range of valid values.");
+			}
+
+			if (_size == _array.Length) InsertRangeWithReize(index, items);
+			else if (index < _size)
+			{
+				Array.Copy(_array, index, _array, index + items._size, _size - index);
+				Array.Copy(items._array, 0, _array, index, items._size);
+				_size++;
+				_version++;
+			}
+		}
 
 		private void InsertWithReize(int index, T item)
 		{
@@ -178,6 +196,22 @@ namespace Synfron.Staxe.Shared.Collections
 			Array.Copy(array, index, array, index + 1, _size - index);
 			_array = newArray;
 			newArray[_size] = item;
+			_version++;
+			_size++;
+		}
+
+		private void InsertRangeWithReize(int index, StackList<T> items)
+		{
+			if (_size + items.Count > MaxSize)
+			{
+				ThrowForMaxSize();
+			}
+			T[] array = _array;
+			T[] newArray = new T[2 * _size];
+			Array.Copy(array, newArray, index);
+			Array.Copy(items._array, 0, array, index, items._size);
+			Array.Copy(array, index, array, index + items.Count, _size - index);
+			_array = newArray;
 			_version++;
 			_size++;
 		}
@@ -416,8 +450,14 @@ namespace Synfron.Staxe.Shared.Collections
 			return originalSize;
 		}
 
+		public void AddRange(StackList<T> items)
+		{
+			AddRange(items._array, items.Count);
+		}
+
 		public void AddRange(T[] items, int count)
 		{
+			Debug.Assert(items != _array);
 			int size = _size;
 			T[] array = _array;
 

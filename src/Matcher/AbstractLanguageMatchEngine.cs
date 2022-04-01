@@ -8,13 +8,13 @@ using System.Text;
 
 namespace Synfron.Staxe.Matcher
 {
-	public abstract class AbstractLanguageMatchEngine : ILanguageMatchEngine
+    public abstract class AbstractLanguageMatchEngine : ILanguageMatchEngine
 	{
 		protected ref struct State
 		{
 			public int CurrentIndex;
+			public int MaxIndex;
 			public List<StringMatchData> DistinctStringMatches;
-			public Span<int> CheckFlags;
 			public int Id;
 			public StringBuilder MatchLogBuilder;
 			public string Code;
@@ -22,7 +22,9 @@ namespace Synfron.Staxe.Matcher
 			public int MaxDistinctIndex;
 			public Dictionary<ValueTuple<string, int>, FragmentMatchData> MatchCache;
 			public int? FailureIndex;
-		}
+			public Span<BlobData> BlobDatas;
+            public bool PreMatchSuccess;
+        }
 
 		public abstract MatcherResult Match(string code, string fragmentMatcher, bool matchFullText = true);
 
@@ -51,6 +53,26 @@ namespace Synfron.Staxe.Matcher
 		protected (bool success, int offset) MatchWordChar(string text, int startOffset = 0)
 		{
 			return startOffset < text.Length && char.IsLetterOrDigit(text[startOffset]) ? (true, 1) : (false, 0);
+		}
+
+		protected int GetLength(IList<IMatchData> matchDatas)
+		{
+			int length = 0;
+			foreach (IMatchData matchData in matchDatas)
+			{
+				length += matchData.Length;
+			}
+			return length;
+		}
+
+		protected string GetText(IList<IMatchData> matchDatas)
+		{
+			StringBuilder textBuilder = new StringBuilder();
+			foreach (IMatchData matchData in matchDatas)
+			{
+				textBuilder.Append(matchData.ToString());
+			}
+			return textBuilder.ToString();
 		}
 
 		protected void ConvertToExpressionTree(FragmentMatchData matchData, ExpressionMode expressionMode)

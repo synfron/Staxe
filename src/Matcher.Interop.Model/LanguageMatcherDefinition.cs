@@ -6,11 +6,14 @@ namespace Synfron.Staxe.Matcher.Interop.Model
 	public class LanguageMatcherDefinition
 	{
 
-		public List<PatternMatcherDefinition> Patterns { get; set; }
+		public IList<PatternMatcherDefinition> Patterns { get; set; }
 
 		public string StartingFragment { get; set; }
 
-		public List<FragmentMatcherDefinition> Fragments { get; set; }
+		public IList<FragmentMatcherDefinition> Fragments { get; set; }
+
+		public IList<MatcherActionDefinition> Actions { get; set; }
+
 		public string Name { get; set; }
 
 		public bool LogMatches { get; set; }

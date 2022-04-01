@@ -26,7 +26,9 @@ namespace Synfron.Staxe.Matcher.Interop.Model
 
 		public string End { get; set; }
 
-		public List<string> Parts { get; set; } = new List<string>();
+		public IList<string> Parts { get; set; } = new List<string>();
+
+		public IList<string> Actions { get; set; }
 
 		public string PartsDelimiter { get; set; }
 

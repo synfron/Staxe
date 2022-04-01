@@ -35,7 +35,7 @@ namespace Synfron.Staxe.Matcher
 
 		private string Generate()
 		{
-			return LanguageMatcher.Generate(this).Replace("<<Generated Methods>>", _codeBuilder.ToString());
+			return LanguageMatchEngine.Generate(this).Replace("<<Generated Methods>>", _codeBuilder.ToString());
 		}
 
 		public bool TryGetMethod(string methodName, ref string method)

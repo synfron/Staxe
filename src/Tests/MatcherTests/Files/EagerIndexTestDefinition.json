@@ -2,7 +2,6 @@
   "name": "StaxeTestComplexLang",
   "startingFragment": "Script",
   "indexingMode": "Eager",
-  "logMatches": true,
   "patterns": [
     {
       "name": "Null",
@@ -81,11 +80,11 @@
       "pattern": "`static"
     },
     {
-      "name": "Identifier",
+      "name": "Id",
       "pattern": "`\\l(\\w|_)*"
     },
     {
-      "name": "Number",
+      "name": "Num",
       "pattern": "~(\\d*\\.\\d+(e(-|\\+)?\\d+)?|\\d+)"
     },
     {
@@ -210,7 +209,7 @@
     {
       "name": "Native",
       "pattern": "$"
-    }
+    },
   ],
   "fragments": [
     {
@@ -271,7 +270,7 @@
     {
       "name": "NamespaceIdentifier",
       "parts": [
-        "Identifier"
+        "Id"
       ],
       "partsMatchMode": "Multiple",
       "partsDelimiter": "Dot"
@@ -279,7 +278,7 @@
     {
       "name": "NativeIdentifier",
       "parts": [
-        "Identifier"
+        "Id"
       ],
       "start": "Native",
       "partsMatchMode": "Multiple",
@@ -329,18 +328,20 @@
     {
       "name": "Identifier",
       "parts": [
-        "Identifier"
+        "Id"
       ],
       "partsMatchMode": "One",
+      "fallThroughMode": "All",
       "cacheable": true
     },
     {
       "name": "Number",
       "parts": [
         "[Negative]",
-        "Number"
+        "Num"
       ],
-      "partsMatchMode": "Ordered"
+      "partsMatchMode": "Ordered",
+      "fallThroughMode": "One"
     },
     {
       "name": "Negative",
@@ -461,8 +462,7 @@
       "partsMatchMode": "Multiple",
       "partsPadding": "Whitespace",
       "start": "OpenBrace",
-      "end": "CloseBrace",
-      "failureReportStrategy": 6
+      "end": "CloseBrace"
     },
     {
       "name": "SetterBlock",
@@ -543,9 +543,8 @@
       "name": "OptionalElseIfStatements",
       "parts": [
         "[ElseIfStatement]"
-
       ],
-      "MinMatchedParts": 0,
+      "minMatchedParts": 0,
       "partsMatchMode": "Multiple",
       "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
@@ -555,9 +554,8 @@
       "name": "OptionalElseStatement",
       "parts": [
         "[ElseStatement]"
-
       ],
-      "MinMatchedParts": 0,
+      "minMatchedParts": 0,
       "partsMatchMode": "One",
       "fallThroughMode": "All"
     },
@@ -568,7 +566,8 @@
       ],
       "start": "Else",
       "partsPadding": "Whitespace",
-      "partsMatchMode": "One"
+      "partsMatchMode": "One",
+      "fallThroughMode": "All"
     },
     {
       "name": "ElseStatement",
@@ -739,13 +738,6 @@
       "partsMatchMode": "Ordered"
     },
     {
-      "name": "Self",
-      "parts": [
-        "Self"
-      ],
-      "partsMatchMode": "One"
-    },
-    {
       "name": "Equal",
       "parts": [
         "Equal"
@@ -779,7 +771,8 @@
       ],
       "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
-      "partsMatchMode": "Ordered"
+      "partsMatchMode": "Ordered",
+      "fallThroughMode": "One"
     },
     {
       "name": "ValuableChainStart",
@@ -806,7 +799,7 @@
     {
       "name": "ValuableChainSelfStart",
       "parts": [
-        "[Self]",
+        "Self",
         "[DotIdentifier]"
       ],
       "partsMatchMode": "Ordered",
@@ -899,9 +892,10 @@
         "StringLiteral",
         "[Number]",
         "[DirectedValuableChain]",
-        "[Self]"
+        "Self"
       ],
       "partsMatchMode": "One",
+      "fallThroughMode": "All",
       "cacheable": true
     },
     {
@@ -912,7 +906,8 @@
         "StringLiteral",
         "[Number]"
       ],
-      "partsMatchMode": "One"
+      "partsMatchMode": "One",
+      "fallThroughMode": "All"
     },
     {
       "name": "DirectedValuableChain",
@@ -921,7 +916,8 @@
         "[ValuableChain]",
         "[ValuableSuffix]"
       ],
-      "partsMatchMode": "Ordered"
+      "partsMatchMode": "Ordered",
+      "fallThroughMode": "One"
     },
     {
       "name": "ValuablePrefix",
@@ -931,7 +927,8 @@
         "[Decrement]"
       ],
       "minMatchedParts": 0,
-      "partsMatchMode": "One"
+      "partsMatchMode": "One",
+      "fallThroughMode": "Empty"
     },
     {
       "name": "ValuableSuffix",
@@ -940,7 +937,8 @@
         "[Decrement]"
       ],
       "minMatchedParts": 0,
-      "partsMatchMode": "One"
+      "partsMatchMode": "One",
+      "fallThroughMode": "Empty"
     },
     {
       "name": "Decrement",
@@ -1006,9 +1004,9 @@
       ],
       "partsMatchMode": "Ordered",
       "partsDelimiter": "Whitespace",
-      "fallThroughMode": "All",
       "partsDelimiterRequired": false,
-      "expressionMode": "BinaryTree"
+      "expressionMode": "BinaryTree",
+      "fallThroughMode": "All"
     },
     {
       "name": "ExpressionSuffix",
@@ -1036,7 +1034,6 @@
       "partsMatchMode": "One",
       "boundsAsParts": true,
       "expressionOrder": 1
-
     },
     {
       "name": "AdditiveSuffix",
@@ -1162,6 +1159,7 @@
       "partsPadding": "Whitespace",
       "start": "OpenBracket",
       "end": "CloseBracket",
+      "fallThroughMode": "All",
       "cacheable": true
     }
   ]

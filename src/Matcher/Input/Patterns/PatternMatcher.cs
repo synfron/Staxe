@@ -1,4 +1,7 @@
-﻿namespace Synfron.Staxe.Matcher.Input.Patterns
+﻿using Synfron.Staxe.Matcher.Data;
+using System.Collections.Generic;
+
+namespace Synfron.Staxe.Matcher.Input.Patterns
 {
 	public abstract class PatternMatcher : IMatcher
 	{
@@ -10,6 +13,8 @@
 		public bool IsNoise { get; set; }
 
 		public bool Mergable { get; set; }
+
+		public bool IsStandard { get; set; } = true;
 
 		public abstract (bool success, int offset) IsMatch(string text, int startOffset = 0);
 

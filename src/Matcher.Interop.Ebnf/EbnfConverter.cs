@@ -18,6 +18,12 @@ namespace Synfron.Staxe.Matcher.Interop.Bnf
 		private Dictionary<string, ValueTuple<FragmentMatcher, FragmentMatchData>> _fragmentMatcherMap;
 		private string _ebnfText = null;
 
+		public bool IgnoreWhitespace
+        {
+			get;
+			set;
+        }
+
 		public List<FragmentMatcher> DefaultFragments
 		{
 			get;
@@ -29,13 +35,21 @@ namespace Synfron.Staxe.Matcher.Interop.Bnf
 			_ebnfText = ebnfText;
 			_patternMatcherMap = new Dictionary<string, PatternMatcher>(StringComparer.Ordinal);
 			_fragmentMatcherMap = new Dictionary<string, ValueTuple<FragmentMatcher, FragmentMatchData>>(StringComparer.Ordinal);
+
 			_languageMatcher = new LanguageMatcher()
 			{
 				Name = name,
 				Patterns = new List<PatternMatcher>(),
 				Fragments = new List<FragmentMatcher>()
-
 			};
+
+			if (IgnoreWhitespace)
+            {
+
+				PatternMatcher whitepacePattern = PatternReader.Parse(-2, "IgnoredWhitespace", "\\s+");
+				whitepacePattern.IsNoise = true;
+				_languageMatcher.Patterns.Add(whitepacePattern);
+			}
 
 			MatcherResult matcherResult = _ebnfMatchEngine.Match(ebnfText);
 
@@ -51,7 +65,7 @@ namespace Synfron.Staxe.Matcher.Interop.Bnf
 
 			AddRules((FragmentMatchData)matcherResult.MatchData);
 
-			_languageMatcher.IndexingMode = IndexingMode.Lazy;
+			_languageMatcher.IndexingMode = IndexingMode.Eager;
 			_languageMatcher.StartingFragment = _languageMatcher.Fragments.FirstOrDefault();
 
 			return _languageMatcher;

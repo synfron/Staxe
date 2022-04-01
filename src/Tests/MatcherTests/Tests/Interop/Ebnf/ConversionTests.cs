@@ -17,7 +17,7 @@ namespace MatcherTests.Interop.Ebnf.Tests
 		[InlineData("abc-w3c.ebnf", 10)]
 		public void ConversionTest(string grammarFileName, int numRules)
 		{
-			const string fileDirectory = "Interop/Ebnf/Files";
+			const string fileDirectory = "Files";
 			string ebnf = File.ReadAllText(Path.Combine(fileDirectory, "Grammars", grammarFileName));
 
 			EbnfConverter ebnfConverter = new EbnfConverter();
