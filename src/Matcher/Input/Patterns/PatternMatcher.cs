@@ -12,8 +12,6 @@ namespace Synfron.Staxe.Matcher.Input.Patterns
 
 		public bool IsNoise { get; set; }
 
-		public bool Mergable { get; set; }
-
 		public bool IsStandard { get; set; } = true;
 
 		public abstract (bool success, int offset) IsMatch(string text, int startOffset = 0);

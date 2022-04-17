@@ -15,7 +15,7 @@ namespace Synfron.Staxe.Matcher.Input.Actions
 
         public AssertType Assert { get; set; }
 
-        public override MatcherActionType ActionType => MatcherActionType.Assert;
+        public override MatcherActionType Action => MatcherActionType.Assert;
 
         public override bool Perform(Span<BlobData> blobDatas, IList<IMatchData> matchDatas)
         {
@@ -27,26 +27,26 @@ namespace Synfron.Staxe.Matcher.Input.Actions
                     return !Equals(blobDatas[FirstBlobId].Value?.ToString(), blobDatas[SecondBlobId].Value?.ToString());
                 case AssertType.GreaterThan:
                     {
-                        return double.TryParse(blobDatas[FirstBlobId].Value.ToString(), out double num1) 
-                            && double.TryParse(blobDatas[SecondBlobId].Value.ToString(), out double num2) ?
+                        return double.TryParse(blobDatas[FirstBlobId].Value?.ToString(), out double num1) 
+                            && double.TryParse(blobDatas[SecondBlobId].Value?.ToString(), out double num2) ?
                             num1 > num2 : false;
                     }
                 case AssertType.GreaterThanOrEquals:
                     {
-                        return double.TryParse(blobDatas[FirstBlobId].Value.ToString(), out double num1)
-                            && double.TryParse(blobDatas[SecondBlobId].Value.ToString(), out double num2) ?
+                        return double.TryParse(blobDatas[FirstBlobId].Value?.ToString(), out double num1)
+                            && double.TryParse(blobDatas[SecondBlobId].Value?.ToString(), out double num2) ?
                             num1 >= num2 : false;
                     }
                 case AssertType.LessThan:
                     {
-                        return double.TryParse(blobDatas[FirstBlobId].Value.ToString(), out double num1)
-                            && double.TryParse(blobDatas[SecondBlobId].Value.ToString(), out double num2) ?
+                        return double.TryParse(blobDatas[FirstBlobId].Value?.ToString(), out double num1)
+                            && double.TryParse(blobDatas[SecondBlobId].Value?.ToString(), out double num2) ?
                             num1 < num2 : false;
                     }
                 case AssertType.LessThanOrEquals:
                     {
-                        return double.TryParse(blobDatas[FirstBlobId].Value.ToString(), out double num1)
-                            && double.TryParse(blobDatas[SecondBlobId].Value.ToString(), out double num2) ?
+                        return double.TryParse(blobDatas[FirstBlobId].Value?.ToString(), out double num1)
+                            && double.TryParse(blobDatas[SecondBlobId].Value?.ToString(), out double num2) ?
                             num1 <= num2 : false;
                     }
                 case AssertType.Contains:
@@ -71,10 +71,10 @@ namespace Synfron.Staxe.Matcher.Input.Actions
 				string code = $@"private bool {methodName}(Span<BlobData> blobDatas, IList<IMatchData> matchDatas)
         {{
             {(Assert == AssertType.Equals ? $@"
-            return Equals(blobDatas[{FirstBlobId}]?.Value, blobDatas[{SecondBlobId}]?.Value);
+            return Equals(blobDatas[{FirstBlobId}].Value?.ToString(), blobDatas[{SecondBlobId}].Value?.ToString());
             " : null)}
             {(Assert == AssertType.NotEquals ? $@"
-            return !Equals(blobDatas[{FirstBlobId}]?.Value, blobDatas[{SecondBlobId}]?.Value);
+            return !Equals(blobDatas[{FirstBlobId}].Value?.ToString(), blobDatas[{SecondBlobId}].Value?.ToString());
             " : null)}
             {(Assert == AssertType.GreaterThan ? $@"
             return double.TryParse(blobDatas[{FirstBlobId}].Value?.ToString(), out double num1) 

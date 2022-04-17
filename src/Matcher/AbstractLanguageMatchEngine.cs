@@ -13,7 +13,6 @@ namespace Synfron.Staxe.Matcher
 		protected ref struct State
 		{
 			public int CurrentIndex;
-			public int MaxIndex;
 			public List<StringMatchData> DistinctStringMatches;
 			public int Id;
 			public StringBuilder MatchLogBuilder;

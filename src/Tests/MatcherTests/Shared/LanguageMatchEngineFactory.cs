@@ -20,7 +20,7 @@ namespace MatcherTests.Shared
                     {
                         MatcherClassGenerator generator = new MatcherClassGenerator(languageMatcher);
                         Assembly assembly = generator.GetAssembly();
-                        return (ILanguageMatchEngine)Activator.CreateInstance(assembly.GetType($"Synfron.Staxe.Matcher.{languageMatcher.Name}"));
+                        return (ILanguageMatchEngine)Activator.CreateInstance(assembly.GetType($"Synfron.Staxe.Matcher.{languageMatcher.Name}MatchEngine"));
                     }
                 case GenerationType.PostGen:
                     {

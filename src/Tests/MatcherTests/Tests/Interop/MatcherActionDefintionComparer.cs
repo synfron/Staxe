@@ -15,7 +15,7 @@ namespace MatcherTests.Tests.Interop
                 && x.SecondVariableName == y.SecondVariableName
                 && x.Name == y.Name
                 && x.Assert == y.Assert
-                && x.ActionType == y.ActionType
+                && x.Action == y.Action
                 && x.Value == y.Value;
         }
 

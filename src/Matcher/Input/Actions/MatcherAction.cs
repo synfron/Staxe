@@ -10,7 +10,7 @@ namespace Synfron.Staxe.Matcher.Input.Actions
     {
         public string Name { get; set; }
 
-        public abstract MatcherActionType ActionType { get; }
+        public abstract MatcherActionType Action { get; }
 
         public abstract bool Perform(Span<BlobData> blobDatas, IList<IMatchData> matchDatas);
 

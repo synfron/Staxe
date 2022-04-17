@@ -203,8 +203,7 @@
     },
     {
       "name": "Whitespace",
-      "pattern": "\\s+",
-      "mergable": true
+      "pattern": "\\s+"
     },
     {
       "name": "Native",
@@ -218,10 +217,8 @@
         "[Namespace]",
         "[BlockOrStatement]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
-      "partsMatchMode": "Multiple",
-      "partsPadding": "Whitespace"
+      "partsMatchMode": "Multiple"
     },
     {
       "name": "Namespace",
@@ -229,11 +226,9 @@
         "[NamespaceIdentifier]",
         "[NamespaceBody]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "start": "Namespace",
-      "partsMatchMode": "Ordered",
-      "partsPadding": "Whitespace"
+      "partsMatchMode": "Ordered"
     },
     {
       "name": "NamespaceBody",
@@ -243,10 +238,8 @@
       ],
       "start": "OpenBrace",
       "end": "CloseBrace",
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
-      "partsMatchMode": "Multiple",
-      "partsPadding": "Whitespace"
+      "partsMatchMode": "Multiple"
     },
     {
       "name": "UsingStatement",
@@ -255,7 +248,6 @@
       ],
       "start": "Using",
       "partsMatchMode": "One",
-      "partsPadding": "Whitespace",
       "end": "SemiColon"
     },
     {
@@ -292,8 +284,6 @@
         "[ClassBody]"
       ],
       "start": "Class",
-      "partsDelimiter": "Whitespace",
-      "partsPadding": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Ordered"
     },
@@ -311,7 +301,6 @@
         "[Identifier]"
       ],
       "partsDelimiterRequired": true,
-      "partsPadding": "Whitespace",
       "partsMatchMode": "One",
       "start": "Colon",
       "fallThroughMode": "All"
@@ -322,7 +311,6 @@
         "[Class]"
       ],
       "start": "Static",
-      "partsPadding": "Whitespace",
       "partsMatchMode": "One"
     },
     {
@@ -360,11 +348,9 @@
         "[Constructor]",
         "[Function]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "minMatchedParts": 0,
       "partsMatchMode": "Multiple",
-      "partsPadding": "Whitespace",
       "start": "OpenBrace",
       "end": "CloseBrace"
     },
@@ -374,7 +360,6 @@
         "[FunctionParameters]",
         "[BlockOrStatement]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Ordered",
       "clearCache": true
@@ -386,9 +371,7 @@
         "[FunctionParameters]",
         "[BlockOrStatement]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
-      "partsPadding": "Whitespace",
       "partsMatchMode": "Ordered",
       "clearCache": true
     },
@@ -398,7 +381,6 @@
         "[FunctionParameters]",
         "[BlockOrStatement]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Ordered",
       "clearCache": true
@@ -409,8 +391,6 @@
         "[Identifier]",
         "[ArgumentValues]"
       ],
-      "partsDelimiter": "Whitespace",
-      "partsPadding": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Ordered",
       "start": "New",
@@ -421,8 +401,6 @@
       "parts": [
         "[ArrayInitializer]"
       ],
-      "partsDelimiter": "Whitespace",
-      "partsPadding": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "One",
       "start": "New"
@@ -433,8 +411,6 @@
         "[SetterBlock]",
         "[ArrayBlock]"
       ],
-      "partsDelimiter": "Whitespace",
-      "partsPadding": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "One",
       "start": "New"
@@ -447,7 +423,6 @@
       "partsDelimiter": "CommaSeparator",
       "minMatchedParts": 0,
       "partsMatchMode": "Multiple",
-      "partsPadding": "Whitespace",
       "start": "OpenParens",
       "end": "CloseParens"
     },
@@ -456,11 +431,9 @@
       "parts": [
         "[BlockOrStatement]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "minMatchedParts": 0,
       "partsMatchMode": "Multiple",
-      "partsPadding": "Whitespace",
       "start": "OpenBrace",
       "end": "CloseBrace"
     },
@@ -473,7 +446,6 @@
       "partsDelimiterRequired": false,
       "minMatchedParts": 0,
       "partsMatchMode": "Multiple",
-      "partsPadding": "Whitespace",
       "start": "OpenBrace",
       "end": "CloseBrace"
     },
@@ -486,7 +458,6 @@
       "partsDelimiterRequired": false,
       "minMatchedParts": 0,
       "partsMatchMode": "Multiple",
-      "partsPadding": "Whitespace",
       "start": "OpenBrace",
       "end": "CloseBrace"
     },
@@ -498,7 +469,6 @@
         "[Evaluable]"
       ],
       "partsMatchMode": "Ordered",
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false
     },
     {
@@ -535,7 +505,6 @@
         "[OptionalElseIfStatements]",
         "[OptionalElseStatement]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Ordered"
     },
@@ -546,7 +515,6 @@
       ],
       "minMatchedParts": 0,
       "partsMatchMode": "Multiple",
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "fallThroughMode": "All"
     },
@@ -565,7 +533,6 @@
         "[IfStatement]"
       ],
       "start": "Else",
-      "partsPadding": "Whitespace",
       "partsMatchMode": "One",
       "fallThroughMode": "All"
     },
@@ -575,8 +542,6 @@
         "[BlockOrStatement]"
       ],
       "start": "Else",
-      "partsPadding": "Whitespace",
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "One"
     },
@@ -587,8 +552,6 @@
         "[BlockOrStatement]"
       ],
       "start": "If",
-      "partsPadding": "Whitespace",
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Ordered"
     },
@@ -598,7 +561,6 @@
         "[Evaluable]"
       ],
       "partsMatchMode": "One",
-      "partsPadding": "Whitespace",
       "start": "OpenParens",
       "end": "CloseParens",
       "fallThroughMode": "All"
@@ -612,7 +574,6 @@
       ],
       "partsDelimiter": "CommaSeparator",
       "partsMatchMode": "Ordered",
-      "partsPadding": "Whitespace",
       "start": "OpenParens",
       "end": "CloseParens"
     },
@@ -623,9 +584,7 @@
         "[Of]",
         "[Evaluable]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsMatchMode": "Ordered",
-      "partsPadding": "Whitespace",
       "partsDelimiterRequired": false,
       "start": "OpenParens",
       "end": "CloseParens"
@@ -637,10 +596,8 @@
         "[BlockOrStatement]"
       ],
       "start": "ForEach",
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
-      "partsMatchMode": "Ordered",
-      "partsPadding": "Whitespace"
+      "partsMatchMode": "Ordered"
     },
     {
       "name": "ForBlock",
@@ -649,10 +606,8 @@
         "[BlockOrStatement]"
       ],
       "start": "For",
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
-      "partsMatchMode": "Ordered",
-      "partsPadding": "Whitespace"
+      "partsMatchMode": "Ordered"
     },
     {
       "name": "WhileBlock",
@@ -661,10 +616,8 @@
         "[BlockOrStatement]"
       ],
       "start": "While",
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
-      "partsMatchMode": "Ordered",
-      "partsPadding": "Whitespace"
+      "partsMatchMode": "Ordered"
     },
     {
       "name": "Statement",
@@ -706,7 +659,6 @@
         "[DirectedValuableChain]"
       ],
       "partsMatchMode": "One",
-      "partsPadding": "Whitespace",
       "fallThroughMode": "All"
     },
     {
@@ -715,7 +667,6 @@
         "[Identifier]"
       ],
       "partsMatchMode": "One",
-      "partsPadding": "Whitespace",
       "start": "Variable"
     },
     {
@@ -733,7 +684,6 @@
         "[AssignmentEqual]",
         "[Evaluable]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Ordered"
     },
@@ -769,7 +719,6 @@
         "[ValuableChainStart]",
         "[OptionalChainables]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Ordered",
       "fallThroughMode": "One"
@@ -813,7 +762,6 @@
         "[DotChainable]",
         "[DotIdentifier]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Multiple",
       "fallThroughMode": "All"
@@ -823,8 +771,6 @@
       "parts": [
         "[Chainable]"
       ],
-      "partsPadding": "Whitespace",
-      "partsDelimiter": "Whitespace",
       "partsMatchMode": "Multiple",
       "minMatchedParts": 0,
       "fallThroughMode": "All"
@@ -835,7 +781,6 @@
         "[Return]",
         "[Evaluable]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsMatchMode": "Ordered",
       "minMatchedParts": 1
     },
@@ -856,10 +801,8 @@
         "[Equal]",
         "[Evaluable]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "Ordered",
-      "partsPadding": "Whitespace",
       "start": "Variable"
     },
     {
@@ -867,7 +810,6 @@
       "parts": [
         "[Identifier]"
       ],
-      "partsPadding": "Whitespace",
       "end": "SemiColon",
       "partsMatchMode": "One"
     },
@@ -878,8 +820,6 @@
         "[Equal]",
         "[Value]"
       ],
-      "partsPadding": "Whitespace",
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "end": "SemiColon",
       "partsMatchMode": "Ordered"
@@ -961,7 +901,6 @@
         "[Identifier]"
       ],
       "start": "Dot",
-      "partsPadding": "Whitespace",
       "partsMatchMode": "One"
     },
     {
@@ -970,7 +909,6 @@
         "[SetterBlock]"
       ],
       "start": "Dot",
-      "partsPadding": "Whitespace",
       "partsMatchMode": "One",
       "fallThroughMode": "All"
     },
@@ -982,7 +920,6 @@
       "partsDelimiter": "CommaSeparator",
       "minMatchedParts": 0,
       "partsMatchMode": "Multiple",
-      "partsPadding": "Whitespace",
       "start": "OpenParens",
       "end": "CloseParens"
     },
@@ -1003,7 +940,6 @@
         "[ExpressionSuffix]"
       ],
       "partsMatchMode": "Ordered",
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "expressionMode": "BinaryTree",
       "fallThroughMode": "All"
@@ -1030,7 +966,6 @@
         "[Valuable]"
       ],
       "start": "Multiplicative",
-      "partsPadding": "Whitespace",
       "partsMatchMode": "One",
       "boundsAsParts": true,
       "expressionOrder": 1
@@ -1041,7 +976,6 @@
         "[Valuable]"
       ],
       "start": "Additive",
-      "partsPadding": "Whitespace",
       "partsMatchMode": "One",
       "boundsAsParts": true,
       "expressionOrder": 2
@@ -1052,7 +986,6 @@
         "[Valuable]"
       ],
       "start": "Subtractive",
-      "partsPadding": "Whitespace",
       "partsMatchMode": "One",
       "boundsAsParts": true,
       "expressionOrder": 2
@@ -1063,7 +996,6 @@
         "[Valuable]"
       ],
       "start": "Equality",
-      "partsPadding": "Whitespace",
       "partsMatchMode": "One",
       "boundsAsParts": true,
       "expressionOrder": 4
@@ -1074,7 +1006,6 @@
         "[Valuable]"
       ],
       "start": "Relational",
-      "partsPadding": "Whitespace",
       "partsMatchMode": "One",
       "boundsAsParts": true,
       "expressionOrder": 3
@@ -1085,7 +1016,6 @@
         "[Valuable]"
       ],
       "start": "And",
-      "partsPadding": "Whitespace",
       "partsMatchMode": "One",
       "boundsAsParts": true,
       "expressionOrder": 7
@@ -1096,7 +1026,6 @@
         "[Valuable]"
       ],
       "start": "Or",
-      "partsPadding": "Whitespace",
       "partsMatchMode": "One",
       "boundsAsParts": true,
       "expressionOrder": 8
@@ -1107,7 +1036,6 @@
         "[Valuable]"
       ],
       "start": "BitwiseAnd",
-      "partsPadding": "Whitespace",
       "partsMatchMode": "One",
       "boundsAsParts": true,
       "expressionOrder": 5
@@ -1118,7 +1046,6 @@
         "[Valuable]"
       ],
       "start": "BitwiseOr",
-      "partsPadding": "Whitespace",
       "partsMatchMode": "One",
       "boundsAsParts": true,
       "expressionOrder": 6
@@ -1128,10 +1055,8 @@
       "parts": [
         "[Evaluable]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "One",
-      "partsPadding": "Whitespace",
       "start": "OpenParens",
       "end": "CloseParens",
       "cacheable": true
@@ -1141,10 +1066,8 @@
       "parts": [
         "[Evaluable]"
       ],
-      "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "partsMatchMode": "One",
-      "partsPadding": "Whitespace",
       "start": "OpenBracket",
       "end": "CloseBracket",
       "cacheable": true
@@ -1156,7 +1079,6 @@
       ],
       "minMatchedParts": 0,
       "partsMatchMode": "One",
-      "partsPadding": "Whitespace",
       "start": "OpenBracket",
       "end": "CloseBracket",
       "fallThroughMode": "All",

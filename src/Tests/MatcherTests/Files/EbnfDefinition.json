@@ -2,6 +2,7 @@
   "name": "Ebnf",
   "startingFragment": "Rules",
   "indexingMode": "Eager",
+  "logMatches": true,
   "patterns": [
     {
       "name": "Number",
@@ -16,12 +17,27 @@
       "pattern": "'('!.)*'"
     },
     {
+      "name": "OptionalGroup",
+      "fragment": "OptionalGroup",
+      "isNoise": true
+    },
+    {
+      "name": "OpenBracket",
+      "pattern": "\\[",
+      "isAuxiliary": true
+    },
+    {
+      "name": "CloseBracket",
+      "pattern": "\\]",
+      "isAuxiliary": true
+    },
+    {
       "name": "SpecialGroup",
       "pattern": "\\[((\\[!\\]!.)|(\\\\\\[|\\\\\\]))+\\]"
     },
     {
       "name": "Comment",
-      "pattern": "\\(\\*(\\*\\)!.)*\\*\\)|/\\*((\\*/)!.)*\\*/",
+      "pattern": "(\\(\\*(\\*\\)!.)*\\*\\)|/\\*((\\*/)!.)*\\*/)\\s*",
       "isNoise": true
     },
     {
@@ -63,14 +79,6 @@
     {
       "name": "CloseBrace",
       "pattern": "\\}"
-    },
-    {
-      "name": "OpenBracket",
-      "pattern": "\\["
-    },
-    {
-      "name": "CloseBracket",
-      "pattern": "\\]"
     },
     {
       "name": "OpenParens",
@@ -150,13 +158,11 @@
         "[RulePrefix]",
         "[Expression]",
         "[EndMark]"
-
       ],
       "minMatchedParts": 2,
       "partsMatchMode": "Ordered",
       "partsDelimiter": "Whitespace",
-      "partsDelimiterRequired": false,
-      "clearCache": true
+      "partsDelimiterRequired": false
     },
     {
       "name": "Expression",
@@ -227,7 +233,6 @@
       "partsDelimiter": "Whitespace",
       "partsDelimiterRequired": false,
       "expressionOrder": 4
-
     },
     {
       "name": "OptionalComma",
@@ -278,7 +283,8 @@
       "partsMatchMode": "One",
       "partsPadding": "Whitespace",
       "start": "OpenBracket",
-      "end": "CloseBracket"
+      "end": "CloseBracket",
+      "cacheable": true
     },
     {
       "name": "ZeroOrOneItem",

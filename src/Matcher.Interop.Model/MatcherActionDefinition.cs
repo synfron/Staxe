@@ -1,4 +1,5 @@
 using Synfron.Staxe.Matcher.Input.Actions;
+using System;
 
 namespace Synfron.Staxe.Matcher.Interop.Model
 {
@@ -6,7 +7,7 @@ namespace Synfron.Staxe.Matcher.Interop.Model
 	{
 		public string Name { get; set; }
 
-		public MatcherActionType ActionType { get; set; }
+		public MatcherActionType Action { get; set; }
 
 		public string FirstVariableName { get; set; }
 
@@ -18,6 +19,6 @@ namespace Synfron.Staxe.Matcher.Interop.Model
 
 		public AssertType Assert { get; set; }
 
-		public object Value { get; set; }
+		public IConvertible Value { get; set; }
 	}
 }

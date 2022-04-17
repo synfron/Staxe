@@ -8,7 +8,7 @@ namespace Synfron.Staxe.Matcher.Input.Actions
     {
         Value,
         PartsCount,
-        PartsText,
+        PartsXml,
         PartsLength,
         StringPartsText,
         StringPartsLength

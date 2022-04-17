@@ -12,10 +12,6 @@ namespace Synfron.Staxe.Matcher.Data
 
 		public string Name { get; set; }
 
-		public bool IsNoise { get; set; }
-
-		public bool Mergable { get; set; }
-
 		public int Id { get; set; }
 
 		public string ToXml()

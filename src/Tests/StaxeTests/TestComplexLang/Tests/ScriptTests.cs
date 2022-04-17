@@ -40,7 +40,7 @@ namespace StaxeTests.TestComplexLang.Tests
 
 		private ExecutionState<GroupState> Run(string code, InstructionExecutor<GroupState> executor = null)
 		{
-			(Synfron.Staxe.Matcher.Data.IMatchData matchData, bool success, int _, int? _, string _) = LanguageMatchEngine.Match(code);
+			(Synfron.Staxe.Matcher.Data.IMatchData matchData, bool success, int _, int? _, string log) = LanguageMatchEngine.Match(code);
 
 			Assert.True(success);
 
@@ -282,7 +282,7 @@ namespace StaxeTests.TestComplexLang.Tests
 			LanguageConstraintException exception = Assert.Throws<LanguageConstraintException>(() => generator.Generate(matchData));
 
 			Assert.Contains("Cannot assign to the return of a function.", exception.Message);
-			Assert.Equal(invalidAssignment.IndexOf("= 7"), exception.Position);
+			Assert.Equal(invalidAssignment.IndexOf(" = 7"), exception.Position);
 		}
 
 		[Fact]

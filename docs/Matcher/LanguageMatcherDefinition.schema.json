@@ -3,6 +3,7 @@
     "type": "object",
     "title": "Language Matcher",
     "description": "Language parser grammar",
+    "$id": "#/languageMatcher",
     "required": [
         "name",
         "startingFragment",
@@ -33,12 +34,17 @@
         "indexingMode": {
             "$id": "#/properties/indexingMode",
             "type": "string",
-            "description": "Lexer configuration: \n\nNone - Disable lexing; \nLazy - Generate tokens on demand; \nEager - Generate tokens before parsing;",
+            "description": "Token indexing configuration (lexing)",
             "enum": [
                 "None",
                 "Lazy",
                 "Eager"
             ],
+            "meta:enum": {
+                "None": "Disable lexing",
+                "Lazy": "Generate tokens on demand",
+                "Eager": "Generate tokens before parsing"
+            },
             "default": "Lazy",
             "examples": [
                 "Eager"
@@ -54,47 +60,310 @@
             "$id": "#/properties/patterns",
             "type": "array",
             "items": {
-                "$id": "#/properties/patterns/items",
-                "type": "object",
-                "title": "Pattern",
-                "description": "Patterns for generating tokens",
-                "required": [
-                    "name",
-                    "pattern"
-                ],
-                "additionalProperties": false,
-                "properties": {
-                    "name": {
-                        "$id": "#/properties/patterns/items/properties/name",
-                        "type": "string",
-                        "description": "Pattern reference name",
-                        "examples": [
-                            "StringLiteral"
-                        ],
-                        "pattern": "^(\\w+)$"
-                    },
-                    "pattern": {
+                "oneOf": [
+                    {
                         "$id": "#/properties/patterns/items/properties/pattern",
-                        "type": "string",
-                        "description": "Pattern used to parse tokens from text",
-                        "examples": [
-                            "\\s+"
+                        "type": "object",
+                        "title": "Pattern",
+                        "description": "Patterns for generating tokens",
+                        "required": [
+                            "name",
+                            "pattern"
                         ],
-                        "pattern": "^(.*)$"
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "$id": "#/properties/patterns/items/properties/pattern/name",
+                                "type": "string",
+                                "description": "Pattern reference name",
+                                "examples": [
+                                    "StringLiteral"
+                                ],
+                                "pattern": "^(\\w+)$"
+                            },
+                            "pattern": {
+                                "$id": "#/properties/patterns/items/properties/pattern/pattern",
+                                "type": "string",
+                                "description": "Pattern used to parse tokens from text",
+                                "examples": [
+                                    "\\s+"
+                                ],
+                                "pattern": "^(.*)$"
+                            },
+                            "isNoise": {
+                                "$id": "#/properties/patterns/items/properties/pattern/isNoise",
+                                "type": "boolean",
+                                "description": "Text to be ignored while parsing",
+                                "default": false
+                            },
+                            "isAuxiliary": {
+                                "$id": "#/properties/patterns/items/properties/pattern/isAuxiliary",
+                                "type": "boolean",
+                                "description": "Pattern won't be used in pre-parse lexing but may be referenced by a fragment",
+                                "default": false
+                            }
+                        }
                     },
-                    "isNoise": {
-                        "$id": "#/properties/patterns/items/properties/isNoise",
-                        "type": "boolean",
-                        "description": "Text to be ignored while parsing",
-                        "default": false
-                    },
-                    "mergable": {
-                        "$id": "#/properties/patterns/items/properties/mergable",
-                        "type": "boolean",
-                        "description": "Tokens surrounding ignored noise can be removed",
-                        "default": false
+                    {
+                        "$id": "#/properties/patterns/items/properties/fragmentPattern",
+                        "type": "object",
+                        "title": "Fragment Pattern",
+                        "description": "Generate tokens using a fragment in pre-parse lexing",
+                        "required": [
+                            "name",
+                            "fragment"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "$id": "#/properties/patterns/items/properties/fragmentPattern/name",
+                                "type": "string",
+                                "description": "Pattern reference name",
+                                "examples": [
+                                    "StringLiteral"
+                                ],
+                                "pattern": "^(\\w+)$"
+                            },
+                            "pattern": {
+                                "$id": "#/properties/patterns/items/properties/fragmentPattern/fragment",
+                                "type": "string",
+                                "description": "Fragment to run during pre-parse lexing",
+                                "examples": [
+                                    "SpecialSection"
+                                ],
+                                "pattern": "^(\\w+)$"
+                            },
+                            "isNoise": {
+                                "$id": "#/properties/patterns/items/properties/fragmentPattern/isNoise",
+                                "type": "boolean",
+                                "description": "Text to be ignored while parsing",
+                                "default": false
+                            },
+                            "isAuxiliary": {
+                                "$id": "#/properties/patterns/items/properties/fragmentPattern/isAuxiliary",
+                                "type": "boolean",
+                                "description": "Pattern won't be used in pre-parse lexing but may be referenced by a fragment",
+                                "default": false
+                            }
+                        }
                     }
-                }
+                ]
+            }
+        },
+        "actions": {
+            "$id": "#/properties/actions",
+            "type": "array",
+            "items": {
+                "oneOf": [
+                    {
+                        "$id": "#/properties/actions/items/properties/createVariable",
+                        "type": "object",
+                        "title": "Create Variable",
+                        "description": "Create a variable",
+                        "required": [
+                            "name",
+                            "action",
+                            "firstVariableName",
+                            "source"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "$id": "#/properties/actions/items/properties/createVariable/name",
+                                "type": "string",
+                                "description": "Action reference name",
+                                "examples": [
+                                    "CreateVar"
+                                ],
+                                "pattern": "^(\\w+)$"
+                            },
+                            "action": {
+                                "$id": "#/properties/actions/items/properties/createVariable/action",
+                                "type": "string",
+                                "description": "Action type",
+                                "enum": [
+                                    "CreateVariable"
+                                ]
+                            },
+                            "firstVariableName": {
+                                "$id": "#/properties/actions/items/properties/createVariable/firstVariableName",
+                                "type": "string",
+                                "description": "Name of variable to create",
+                                "examples": [
+                                    "Var1"
+                                ],
+                                "pattern": "^(\\w+)$"
+                            },
+                            "source": {
+                                "$id": "#/properties/actions/items/properties/createVariable/source",
+                                "type": "string",
+                                "description": "Value to set in the variable",
+                                "enum": [
+                                    "Value",
+                                    "PartsCount",
+                                    "PartsXml",
+                                    "PartsLength",
+                                    "StringPartsText",
+                                    "StringPartsLength"
+                                ],
+                                "meta:enum": {
+                                    "Value": "Use the value field",
+                                    "PartsCount": "Count of fragment parts",
+                                    "PartsXml": "XML representation of the fragment parts",
+                                    "PartsLength": "Length of all fragment parts together",
+                                    "StringPartsText": "Count of fragment string based parts",
+                                    "StringPartsLength": "Concatenated text of all fragment string based parts"
+                                }
+                            },
+                            "value": {
+                                "$id": "#/properties/actions/items/properties/createVariable/value",
+                                "type": [
+                                    "integer",
+                                    "string"
+                                ],
+                                "description": "Value to set in the variable if this is set as the source",
+                                "examples": [
+                                    "print",
+                                    20
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "$id": "#/properties/actions/items/properties/updateVariable",
+                        "type": "object",
+                        "title": "Update Variable",
+                        "description": "Update and perform an operation on a variable",
+                        "required": [
+                            "name",
+                            "action",
+                            "firstVariableName",
+                            "secondVariableName",
+                            "change"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "$id": "#/properties/actions/items/properties/updateVariable/name",
+                                "type": "string",
+                                "description": "Action reference name",
+                                "examples": [
+                                    "SetVar"
+                                ],
+                                "pattern": "^(\\w+)$"
+                            },
+                            "action": {
+                                "$id": "#/properties/actions/items/properties/updateVariable/action",
+                                "type": "string",
+                                "description": "Action type",
+                                "enum": [
+                                    "UpdateVariable"
+                                ]
+                            },
+                            "firstVariableName": {
+                                "$id": "#/properties/actions/items/properties/updateVariable/firstVariableName",
+                                "type": "string",
+                                "description": "Name of variable to update and perform a operation against",
+                                "examples": [
+                                    "Var1"
+                                ],
+                                "pattern": "^(\\w+)$"
+                            },
+                            "secondVariableName": {
+                                "$id": "#/properties/actions/items/properties/updateVariable/secondVariableName",
+                                "type": "string",
+                                "description": "Name of variable to use on the other end of the operation",
+                                "examples": [
+                                    "Var2"
+                                ],
+                                "pattern": "^(\\w+)$"
+                            },
+                            "change": {
+                                "$id": "#/properties/actions/items/properties/updateVariable/change",
+                                "type": "string",
+                                "description": "Operation to perform",
+                                "enum": [
+                                    "Add",
+                                    "Subtract",
+                                    "Concat",
+                                    "Remove",
+                                    "Set"
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "$id": "#/properties/actions/items/properties/assert",
+                        "type": "object",
+                        "title": "Assert",
+                        "description": "Assert an condition between two variables. If unsuccessful, the fragment is marked as failed",
+                        "required": [
+                            "name",
+                            "action",
+                            "firstVariableName",
+                            "secondVariableName",
+                            "assert"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "$id": "#/properties/actions/items/properties/assert/name",
+                                "type": "string",
+                                "description": "Action reference name",
+                                "examples": [
+                                    "CheckVar"
+                                ],
+                                "pattern": "^(\\w+)$"
+                            },
+                            "action": {
+                                "$id": "#/properties/actions/items/properties/assert/action",
+                                "type": "string",
+                                "description": "Action type",
+                                "enum": [
+                                    "Assert"
+                                ]
+                            },
+                            "firstVariableName": {
+                                "$id": "#/properties/actions/items/properties/assert/firstVariableName",
+                                "type": "string",
+                                "description": "Name of the first variable in the condition",
+                                "examples": [
+                                    "Var1"
+                                ],
+                                "pattern": "^(\\w+)$"
+                            },
+                            "secondVariableName": {
+                                "$id": "#/properties/actions/items/properties/assert/secondVariableName",
+                                "type": "string",
+                                "description": "Name of the second variable in the condition",
+                                "examples": [
+                                    "Var2"
+                                ],
+                                "pattern": "^(\\w+)$"
+                            },
+                            "assert": {
+                                "$id": "#/properties/actions/items/properties/assert/assert",
+                                "type": "string",
+                                "description": "The condition to assert between the two variables",
+                                "enum": [
+                                    "Equals",
+                                    "NotEquals",
+                                    "GreaterThan",
+                                    "GreaterThanOrEquals",
+                                    "LessThan",
+                                    "LessThanOrEquals",
+                                    "Contains",
+                                    "StartsWith",
+                                    "EndsWith",
+                                    "MatchesPattern"
+                                ],
+                                "meta:enum": {
+                                    "MatchesPattern": "Matches a pattern string (e.g. \\w+)"
+                                }
+                            }
+                        }
+                    }
+                ]
             }
         },
         "fragments": {
@@ -127,12 +396,27 @@
                         "items": {
                             "$id": "#/properties/fragments/items/properties/parts/items",
                             "type": "string",
-                            "description": "Names of nested fragments (surrounded by '[' and ']' and/or patterns",
+                            "description": "Names of nested fragments (surrounded by '[' and ']') and/or patterns",
                             "examples": [
                                 "StringLiteral",
                                 "[Script]"
                             ],
                             "pattern": "^(\\w+|\\[\\w+\\])$"
+                        }
+                    },
+                    "actions": {
+                        "$id": "#/properties/fragments/items/properties/actions",
+                        "type": "array",
+                        "items": {
+                            "$id": "#/properties/fragments/items/properties/parts/items",
+                            "type": "string",
+                            "description": "Name of actions to run if the fragment matched successfully",
+                            "examples": [
+                                "SetLength",
+                                "SetExpected",
+                                "AssertLength"
+                            ],
+                            "pattern": "^(\\w+)$"
                         }
                     },
                     "partsDelimiter": {
@@ -153,13 +437,18 @@
                     "partsMatchMode": {
                         "$id": "#/properties/fragments/items/properties/partsMatchMode",
                         "type": "string",
-                        "description": "Parts treatment: \n\nMultiple - Match any of the parts (one or more); \nOrdered - Match the parts in the order given; \nOne - Match one of the parts;",
                         "default": "Multiple",
+                        "description": "Repetition constraint",
                         "enum": [
                             "Multiple",
                             "Ordered",
                             "One"
-                        ]
+                        ],
+                        "meta:enum": {
+                            "Multiple": "Match any of the parts (one or more)",
+                            "Ordered": "Match the parts in the order given",
+                            "One": "Match one of the parts"
+                        }
                     },
                     "partsPadding": {
                         "$id": "#/properties/fragments/items/properties/partsPadding",
@@ -202,14 +491,20 @@
                     "fallThroughMode": {
                         "$id": "#/properties/fragments/items/properties/fallThroughMode",
                         "type": "string",
-                        "description": "Add the children of this fragment instead of this fragment to the AST, and discard this fragment. Fall through mode: \n\nNone - No fall through; \nEmpty - Fall through if there are no children; \nOne - Fall through if there is one or less child; \nAll - Always fall through;",
+                        "description": "Add the children of this fragment instead of this fragment to the AST, and discard this fragment",
                         "default": "None",
                         "enum": [
                             "None",
                             "Empty",
                             "One",
                             "All"
-                        ]
+                        ],
+                        "meta:enum": {
+                            "None": "No fall through",
+                            "Empty": "Fall through if there are no children",
+                            "One": "Fall through if there is one or less child",
+                            "All": "Always fall through"
+                        }
                     },
                     "cacheable": {
                         "$id": "#/properties/fragments/items/properties/cacheable",
@@ -226,13 +521,18 @@
                     "expressionMode": {
                         "$id": "#/properties/fragments/items/properties/expressionMode",
                         "type": "string",
-                        "description": "Expression parser mode: \n\nNone - No expression parsing; \nBinaryTree - Expression tree to have a max of two child parts per node; \nLikeNameTree - Expression tree combines parts that are the same type;",
+                        "description": "Expression parser mode",
                         "default": "None",
                         "enum": [
                             "None",
                             "BinaryTree",
                             "LikeNameTree"
-                        ]
+                        ],
+                        "meta:enum": {
+                            "None": "No expression parsing",
+                            "BinaryTree": "Expression tree to have a max of two child parts per node",
+                            "LikeNameTree": "Expression tree combines parts that are the same type"
+                        }
                     },
                     "expressionOrder": {
                         "$id": "#/properties/fragments/items/properties/expressionOrder",

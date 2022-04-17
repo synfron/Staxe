@@ -36,7 +36,7 @@ namespace MatcherTests.Tests.Interop
                     new MatcherActionDefinition
                     {
                         Name = "TestAction1",
-                        ActionType = MatcherActionType.UpdateVariable,
+                        Action = MatcherActionType.UpdateVariable,
                         Change = VariableUpdateAction.Subtract,
                         FirstVariableName = "Var1",
                         SecondVariableName = "Var2"
@@ -44,7 +44,7 @@ namespace MatcherTests.Tests.Interop
                     new MatcherActionDefinition
                     {
                         Name = "TestAction2",
-                        ActionType = MatcherActionType.Assert,
+                        Action = MatcherActionType.Assert,
                         Assert = AssertType.LessThanOrEquals,
                         FirstVariableName = "Var1",
                         SecondVariableName = "Var2"
@@ -52,16 +52,16 @@ namespace MatcherTests.Tests.Interop
                     new MatcherActionDefinition
                     {
                         Name = "TestAction3",
-                        ActionType = MatcherActionType.CreateVariable,
-                        Source = VariableValueSource.PartsText,
+                        Action = MatcherActionType.CreateVariable,
+                        Source = VariableValueSource.PartsXml,
                         FirstVariableName = "Var1",
                         Value = 20
                     },
                     new MatcherActionDefinition
                     {
                         Name = "TestAction4",
-                        ActionType = MatcherActionType.CreateVariable,
-                        Source = VariableValueSource.PartsText,
+                        Action = MatcherActionType.CreateVariable,
+                        Source = VariableValueSource.PartsXml,
                         FirstVariableName = "Var2",
                         Value = 10
                     }
@@ -99,8 +99,7 @@ namespace MatcherTests.Tests.Interop
                         Name = "TestPattern1",
                         Pattern = "A",
                         IsAuxiliary = true,
-                        IsNoise = true,
-                        Mergable = true
+                        IsNoise = true
                     }
                 },
                 Fragments = new[]

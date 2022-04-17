@@ -1,6 +1,9 @@
-﻿using Synfron.Staxe.Matcher;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Synfron.Staxe.Matcher;
 using Synfron.Staxe.Matcher.Input;
 using Synfron.Staxe.Matcher.Interop.Bnf;
+using Synfron.Staxe.Matcher.Interop.Model;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -29,6 +32,12 @@ namespace MatcherTests.Interop.Ebnf.Tests
 
 			Stopwatch watch = new Stopwatch();
 			watch.Start();
+			string json = JsonConvert.SerializeObject(DefinitionConverter.Convert(languageMatcher), new JsonSerializerSettings
+            {
+				NullValueHandling = NullValueHandling.Ignore,
+				DefaultValueHandling = DefaultValueHandling.Ignore,
+				Converters = new [] { new StringEnumConverter() }
+            });
 			LanguageMatchEngine languageMatchEngine = LanguageMatchEngine.Build(languageMatcher);
 
 			MatcherResult result = languageMatchEngine.Match(parsable);

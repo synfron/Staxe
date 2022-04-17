@@ -1,6 +1,7 @@
 ﻿using Synfron.Staxe.Matcher.Data;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Synfron.Staxe.Matcher.Input.Actions
@@ -11,9 +12,9 @@ namespace Synfron.Staxe.Matcher.Input.Actions
 
         public VariableValueSource Source { get; set; }
 
-        public object Value { get; set; }
+        public IConvertible Value { get; set; }
 
-        public override MatcherActionType ActionType => MatcherActionType.CreateVariable;
+        public override MatcherActionType Action => MatcherActionType.CreateVariable;
 
         public override bool Perform(Span<BlobData> blobDatas, IList<IMatchData> matchDatas)
         {
@@ -25,10 +26,10 @@ namespace Synfron.Staxe.Matcher.Input.Actions
                         Value = Value
                     };
                     break;
-                case VariableValueSource.PartsText:
+                case VariableValueSource.PartsXml:
                     blobDatas[BlobId] = new BlobData
                     {
-                        Value = matchDatas.GetText(true)
+                        Value = string.Join("", matchDatas.Select(matchData => matchData.ToXml()))
                     };
                     break;
                 case VariableValueSource.PartsLength:
@@ -71,13 +72,13 @@ namespace Synfron.Staxe.Matcher.Input.Actions
                 {(Source == VariableValueSource.Value ? $@"
                 blobDatas[{BlobId}] = new BlobData
                 {{
-                    Value = Value
+                    Value = {(Value is string str ? $"\"{str}\"" : Value)}
                 }};
                 " : null)}
-                {(Source == VariableValueSource.PartsText ? $@"
+                {(Source == VariableValueSource.PartsXml ? $@"
                 blobDatas[{BlobId}] = new BlobData
                 {{
-                    Value = GetText(matchDatas)
+                    Value = string.Join("", matchDatas.Select(matchData => matchData.ToXml()))
                 }};
                 " : null)}
                 {(Source == VariableValueSource.PartsLength ? $@"

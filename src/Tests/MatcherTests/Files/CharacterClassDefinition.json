@@ -1,6 +1,7 @@
 {
   "name": "CharacterClass",
   "startingFragment": "CharacterClass",
+  "indexingMode": "None",
   "patterns": [
     {
       "name": "OpenBracket",

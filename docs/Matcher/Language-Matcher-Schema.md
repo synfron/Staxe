@@ -1,6 +1,10 @@
 # Language Matcher Schema
 
-Define a language grammar
+```
+#/languageMatcher
+```
+
+Language parser grammar
 
 | Abstract            | Extensible | Status       | Identifiable | Custom Properties | Additional Properties | Defined In                                                                     |
 | ------------------- | ---------- | ------------ | ------------ | ----------------- | --------------------- | ------------------------------------------------------------------------------ |
@@ -10,12 +14,434 @@ Define a language grammar
 
 | Property                              | Type       | Required     | Nullable | Default  | Defined by                     |
 | ------------------------------------- | ---------- | ------------ | -------- | -------- | ------------------------------ |
+| [actions](#actions)                   | `array`    | Optional     | No       |          | Language Matcher (this schema) |
 | [fragments](#fragments)               | `object[]` | **Required** | No       |          | Language Matcher (this schema) |
 | [indexingMode](#indexingmode)         | `enum`     | Optional     | No       | `"Lazy"` | Language Matcher (this schema) |
 | [logMatches](#logmatches)             | `boolean`  | **Required** | No       | `false`  | Language Matcher (this schema) |
 | [name](#name)                         | `string`   | **Required** | No       |          | Language Matcher (this schema) |
-| [patterns](#patterns)                 | `object[]` | **Required** | No       |          | Language Matcher (this schema) |
+| [patterns](#patterns)                 | `array`    | **Required** | No       |          | Language Matcher (this schema) |
 | [startingFragment](#startingfragment) | `string`   | **Required** | No       |          | Language Matcher (this schema) |
+
+## actions
+
+`actions`
+
+- is optional
+- type: `array`
+- defined in this schema
+
+### actions Type
+
+Array type: `array`
+
+All items must be of the type:
+
+**One** of the following _conditions_ need to be fulfilled.
+
+#### Condition 1
+
+`object` with following properties:
+
+| Property            | Type           | Required     |
+| ------------------- | -------------- | ------------ |
+| `action`            | string         | **Required** |
+| `firstVariableName` | string         | **Required** |
+| `name`              | string         | **Required** |
+| `source`            | string         | **Required** |
+| `value`             | integer,string | Optional     |
+
+#### action
+
+Action type
+
+`action`
+
+- is **required**
+- type: `enum`
+
+The value of this property **must** be equal to one of the [known values below](#-known-values).
+
+##### action Known Values
+
+| Value            | Description |
+| ---------------- | ----------- |
+| `CreateVariable` |             |
+
+#### firstVariableName
+
+Name of variable to create
+
+`firstVariableName`
+
+- is **required**
+- type: `string`
+
+##### firstVariableName Type
+
+`string`
+
+All instances must conform to this regular expression
+
+```regex
+^(\w+)$
+```
+
+- test example: [Var1](<https://regexr.com/?expression=%5E(%5Cw%2B)%24&text=Var1>)
+
+##### firstVariableName Example
+
+```json
+Var1
+```
+
+#### name
+
+Action reference name
+
+`name`
+
+- is **required**
+- type: `string`
+
+##### name Type
+
+`string`
+
+All instances must conform to this regular expression
+
+```regex
+^(\w+)$
+```
+
+- test example: [CreateVar](<https://regexr.com/?expression=%5E(%5Cw%2B)%24&text=CreateVar>)
+
+##### name Example
+
+```json
+CreateVar
+```
+
+#### source
+
+Value to set in the variable
+
+`source`
+
+- is **required**
+- type: `enum`
+
+The value of this property **must** be equal to one of the [known values below](#-known-values).
+
+##### source Known Values
+
+| Value               | Description                                          |
+| ------------------- | ---------------------------------------------------- |
+| `Value`             | Use the value field                                  |
+| `PartsCount`        | Count of fragment parts                              |
+| `PartsXml`          | XML representation of the fragment parts             |
+| `PartsLength`       | Length of all fragment parts together                |
+| `StringPartsText`   | Count of fragment string based parts                 |
+| `StringPartsLength` | Concatenated text of all fragment string based parts |
+
+#### value
+
+Value to set in the variable if this is set as the source
+
+`value`
+
+- is optional
+- type: multiple
+
+##### value Type
+
+Unknown type `integer,string`.
+
+```json
+{
+  "$id": "#/properties/actions/items/properties/createVariable/value",
+  "type": ["integer", "string"],
+  "description": "Value to set in the variable if this is set as the source",
+  "examples": ["print", 20],
+  "simpletype": "multiple"
+}
+```
+
+##### value Examples
+
+```json
+print
+```
+
+```json
+20
+```
+
+#### Condition 2
+
+`object` with following properties:
+
+| Property             | Type   | Required     |
+| -------------------- | ------ | ------------ |
+| `action`             | string | **Required** |
+| `change`             | string | **Required** |
+| `firstVariableName`  | string | **Required** |
+| `name`               | string | **Required** |
+| `secondVariableName` | string | **Required** |
+
+#### action
+
+Action type
+
+`action`
+
+- is **required**
+- type: `enum`
+
+The value of this property **must** be equal to one of the [known values below](#-known-values).
+
+##### action Known Values
+
+| Value            | Description |
+| ---------------- | ----------- |
+| `UpdateVariable` |             |
+
+#### change
+
+Operation to perform
+
+`change`
+
+- is **required**
+- type: `enum`
+
+The value of this property **must** be equal to one of the [known values below](#-known-values).
+
+##### change Known Values
+
+| Value      | Description |
+| ---------- | ----------- |
+| `Add`      |             |
+| `Subtract` |             |
+| `Concat`   |             |
+| `Remove`   |             |
+| `Set`      |             |
+
+#### firstVariableName
+
+Name of variable to update and perform a operation against
+
+`firstVariableName`
+
+- is **required**
+- type: `string`
+
+##### firstVariableName Type
+
+`string`
+
+All instances must conform to this regular expression
+
+```regex
+^(\w+)$
+```
+
+- test example: [Var1](<https://regexr.com/?expression=%5E(%5Cw%2B)%24&text=Var1>)
+
+##### firstVariableName Example
+
+```json
+Var1
+```
+
+#### name
+
+Action reference name
+
+`name`
+
+- is **required**
+- type: `string`
+
+##### name Type
+
+`string`
+
+All instances must conform to this regular expression
+
+```regex
+^(\w+)$
+```
+
+- test example: [SetVar](<https://regexr.com/?expression=%5E(%5Cw%2B)%24&text=SetVar>)
+
+##### name Example
+
+```json
+SetVar
+```
+
+#### secondVariableName
+
+Name of variable to use on the other end of the operation
+
+`secondVariableName`
+
+- is **required**
+- type: `string`
+
+##### secondVariableName Type
+
+`string`
+
+All instances must conform to this regular expression
+
+```regex
+^(\w+)$
+```
+
+- test example: [Var2](<https://regexr.com/?expression=%5E(%5Cw%2B)%24&text=Var2>)
+
+##### secondVariableName Example
+
+```json
+Var2
+```
+
+#### Condition 3
+
+`object` with following properties:
+
+| Property             | Type   | Required     |
+| -------------------- | ------ | ------------ |
+| `action`             | string | **Required** |
+| `assert`             | string | **Required** |
+| `firstVariableName`  | string | **Required** |
+| `name`               | string | **Required** |
+| `secondVariableName` | string | **Required** |
+
+#### action
+
+Action type
+
+`action`
+
+- is **required**
+- type: `enum`
+
+The value of this property **must** be equal to one of the [known values below](#-known-values).
+
+##### action Known Values
+
+| Value    | Description |
+| -------- | ----------- |
+| `Assert` |             |
+
+#### assert
+
+The condition to assert between the two variables
+
+`assert`
+
+- is **required**
+- type: `enum`
+
+The value of this property **must** be equal to one of the [known values below](#-known-values).
+
+##### assert Known Values
+
+| Value                 | Description                         |
+| --------------------- | ----------------------------------- |
+| `MatchesPattern`      | Matches a pattern string (e.g. \w+) |
+| `Equals`              |                                     |
+| `NotEquals`           |                                     |
+| `GreaterThan`         |                                     |
+| `GreaterThanOrEquals` |                                     |
+| `LessThan`            |                                     |
+| `LessThanOrEquals`    |                                     |
+| `Contains`            |                                     |
+| `StartsWith`          |                                     |
+| `EndsWith`            |                                     |
+
+#### firstVariableName
+
+Name of the first variable in the condition
+
+`firstVariableName`
+
+- is **required**
+- type: `string`
+
+##### firstVariableName Type
+
+`string`
+
+All instances must conform to this regular expression
+
+```regex
+^(\w+)$
+```
+
+- test example: [Var1](<https://regexr.com/?expression=%5E(%5Cw%2B)%24&text=Var1>)
+
+##### firstVariableName Example
+
+```json
+Var1
+```
+
+#### name
+
+Action reference name
+
+`name`
+
+- is **required**
+- type: `string`
+
+##### name Type
+
+`string`
+
+All instances must conform to this regular expression
+
+```regex
+^(\w+)$
+```
+
+- test example: [CheckVar](<https://regexr.com/?expression=%5E(%5Cw%2B)%24&text=CheckVar>)
+
+##### name Example
+
+```json
+CheckVar
+```
+
+#### secondVariableName
+
+Name of the second variable in the condition
+
+`secondVariableName`
+
+- is **required**
+- type: `string`
+
+##### secondVariableName Type
+
+`string`
+
+All instances must conform to this regular expression
+
+```regex
+^(\w+)$
+```
+
+- test example: [Var2](<https://regexr.com/?expression=%5E(%5Cw%2B)%24&text=Var2>)
+
+##### secondVariableName Example
+
+```json
+Var2
+```
 
 ## fragments
 
@@ -35,6 +461,7 @@ All items must be of the type: `object` with following properties:
 
 | Property                 | Type    | Required     | Default      |
 | ------------------------ | ------- | ------------ | ------------ |
+| `actions`                | array   | Optional     |              |
 | `boundsAsParts`          | boolean | Optional     | `false`      |
 | `cacheable`              | boolean | Optional     | `false`      |
 | `clearCache`             | boolean | Optional     | `false`      |
@@ -53,6 +480,31 @@ All items must be of the type: `object` with following properties:
 | `partsMatchMode`         | string  | Optional     | `"Multiple"` |
 | `partsPadding`           | string  | Optional     |              |
 | `start`                  | string  | Optional     |              |
+
+#### actions
+
+`actions`
+
+- is optional
+- type: `string[]`
+
+##### actions Type
+
+Array type: `string[]`
+
+All items must be of the type: `string`
+
+All instances must conform to this regular expression
+
+```regex
+^(\w+)$
+```
+
+- test example: [SetLength](<https://regexr.com/?expression=%5E(%5Cw%2B)%24&text=SetLength>)
+- test example: [SetExpected](<https://regexr.com/?expression=%5E(%5Cw%2B)%24&text=SetExpected>)
+- test example: [AssertLength](<https://regexr.com/?expression=%5E(%5Cw%2B)%24&text=AssertLength>)
+
+Name of actions to run if the fragment matched successfully
 
 #### boundsAsParts
 
@@ -139,7 +591,7 @@ CloseBracket
 
 #### expressionMode
 
-Experssion parser mode
+Expression parser mode
 
 `expressionMode`
 
@@ -159,7 +611,7 @@ The value of this property **must** be equal to one of the [known values below](
 
 #### expressionOrder
 
-Expression precendence within parent (lower number is higher precendence)
+Expression precedence within parent (lower number is higher precedence)
 
 `expressionOrder`
 
@@ -170,23 +622,9 @@ Expression precendence within parent (lower number is higher precendence)
 
 `integer`
 
-#### fallThrough
-
-Add the children of this fragment instead of this fragment to the AST
-
-`fallThrough`
-
-- is optional
-- type: `boolean`
-- default: `false`
-
-##### fallThrough Type
-
-`boolean`
-
 #### fallThroughMode
 
-Add the children of this fragment instead of this fragment to the AST, and discard this fragment.
+Add the children of this fragment instead of this fragment to the AST, and discard this fragment
 
 `fallThroughMode`
 
@@ -198,12 +636,12 @@ The value of this property **must** be equal to one of the [known values below](
 
 ##### fallThroughMode Known Values
 
-| Value   | Description                                   |
-| ------- | --------------------------------------------- |
-| `None`  | No fall through                               |
-| `Empty` | Fall through if there are no children         |
-| `One`   | Fall through if there is one or less children |
-| `All`   | Always fall through                           |
+| Value   | Description                                |
+| ------- | ------------------------------------------ |
+| `None`  | No fall through                            |
+| `Empty` | Fall through if there are no children      |
+| `One`   | Fall through if there is one or less child |
+| `All`   | Always fall through                        |
 
 #### isNoise
 
@@ -296,7 +734,7 @@ All instances must conform to this regular expression
   [StringLiteral](<https://regexr.com/?expression=%5E(%5Cw%2B%7C%5C%5B%5Cw%2B%5C%5D)%24&text=StringLiteral>)
 - test example: [[Script]](<https://regexr.com/?expression=%5E(%5Cw%2B%7C%5C%5B%5Cw%2B%5C%5D)%24&text=%5BScript%5D>)
 
-Names of nested fragments (surrounded by '[' and ']' and/or patterns
+Names of nested fragments (surrounded by '[' and ']') and/or patterns
 
 #### partsDelimiter
 
@@ -341,7 +779,7 @@ Require that parts are separated by the delimiter
 
 #### partsMatchMode
 
-Parts treatment
+Repetition constraint
 
 `partsMatchMode`
 
@@ -417,7 +855,7 @@ Text parsing rule
 
 ## indexingMode
 
-Lexer configuration
+Token indexing configuration (lexing)
 
 `indexingMode`
 
@@ -490,21 +928,41 @@ All instances must conform to this regular expression
 `patterns`
 
 - is **required**
-- type: `object[]`
+- type: `array`
 - defined in this schema
 
 ### patterns Type
 
-Array type: `object[]`
+Array type: `array`
 
-All items must be of the type: `object` with following properties:
+All items must be of the type:
 
-| Property   | Type    | Required     | Default |
-| ---------- | ------- | ------------ | ------- |
-| `isNoise`  | boolean | Optional     | `false` |
-| `mergable` | boolean | Optional     | `false` |
-| `name`     | string  | **Required** |         |
-| `pattern`  | string  | **Required** |         |
+**One** of the following _conditions_ need to be fulfilled.
+
+#### Condition 1
+
+`object` with following properties:
+
+| Property      | Type    | Required     | Default |
+| ------------- | ------- | ------------ | ------- |
+| `isAuxiliary` | boolean | Optional     | `false` |
+| `isNoise`     | boolean | Optional     | `false` |
+| `name`        | string  | **Required** |         |
+| `pattern`     | string  | **Required** |         |
+
+#### isAuxiliary
+
+Pattern won't be used in pre-parse lexing but may be referenced by a fragment
+
+`isAuxiliary`
+
+- is optional
+- type: `boolean`
+- default: `false`
+
+##### isAuxiliary Type
+
+`boolean`
 
 #### isNoise
 
@@ -517,20 +975,6 @@ Text to be ignored while parsing
 - default: `false`
 
 ##### isNoise Type
-
-`boolean`
-
-#### mergable
-
-Tokens surrounding ignored noise can be removed
-
-`mergable`
-
-- is optional
-- type: `boolean`
-- default: `false`
-
-##### mergable Type
 
 `boolean`
 
@@ -588,7 +1032,98 @@ All instances must conform to this regular expression
 \s+
 ```
 
-Patterns for generating tokens
+#### Condition 2
+
+`object` with following properties:
+
+| Property      | Type    | Required     | Default |
+| ------------- | ------- | ------------ | ------- |
+| `isAuxiliary` | boolean | Optional     | `false` |
+| `isNoise`     | boolean | Optional     | `false` |
+| `name`        | string  | **Required** |         |
+| `pattern`     | string  | Optional     |         |
+
+#### isAuxiliary
+
+Pattern won't be used in pre-parse lexing but may be referenced by a fragment
+
+`isAuxiliary`
+
+- is optional
+- type: `boolean`
+- default: `false`
+
+##### isAuxiliary Type
+
+`boolean`
+
+#### isNoise
+
+Text to be ignored while parsing
+
+`isNoise`
+
+- is optional
+- type: `boolean`
+- default: `false`
+
+##### isNoise Type
+
+`boolean`
+
+#### name
+
+Pattern reference name
+
+`name`
+
+- is **required**
+- type: `string`
+
+##### name Type
+
+`string`
+
+All instances must conform to this regular expression
+
+```regex
+^(\w+)$
+```
+
+- test example: [StringLiteral](<https://regexr.com/?expression=%5E(%5Cw%2B)%24&text=StringLiteral>)
+
+##### name Example
+
+```json
+StringLiteral
+```
+
+#### pattern
+
+Fragment to run during pre-parse lexing
+
+`pattern`
+
+- is optional
+- type: `string`
+
+##### pattern Type
+
+`string`
+
+All instances must conform to this regular expression
+
+```regex
+^(\w+)$
+```
+
+- test example: [SpecialSection](<https://regexr.com/?expression=%5E(%5Cw%2B)%24&text=SpecialSection>)
+
+##### pattern Example
+
+```json
+SpecialSection
+```
 
 ## startingFragment
 
@@ -617,5 +1152,3 @@ All instances must conform to this regular expression
 ```json
 "Script"
 ```
-
-Generated using [jsonschema2md](https://github.com/adobe/jsonschema2md)

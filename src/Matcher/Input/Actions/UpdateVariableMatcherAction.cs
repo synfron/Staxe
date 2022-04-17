@@ -13,7 +13,7 @@ namespace Synfron.Staxe.Matcher.Input.Actions
 
         public int SourceBlobId { get; set; }
 
-        public override MatcherActionType ActionType => MatcherActionType.UpdateVariable;
+        public override MatcherActionType Action => MatcherActionType.UpdateVariable;
 
         public override bool Perform(Span<BlobData> blobDatas, IList<IMatchData> matchDatas)
         {

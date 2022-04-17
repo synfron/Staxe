@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using Synfron.Staxe.Matcher;
 using Synfron.Staxe.Matcher.Input;
+using Synfron.Staxe.Matcher.Input.Actions;
 using Synfron.Staxe.Matcher.Interop.Model;
 using System;
 using System.Collections.Generic;
@@ -37,7 +38,6 @@ namespace MatcherTests.Tests.Engine
             string script = File.ReadAllText("Files/Parsables/JibberishScript.lz");
             LanguageMatcherDefinition languageMatcherDefinition = JsonConvert.DeserializeObject<LanguageMatcherDefinition>(definition);
             LanguageMatcher languageMatcher = DefinitionConverter.Convert(languageMatcherDefinition);
-
             ILanguageMatchEngine engine = LanguageMatchEngineFactory.Get(GenerationType, languageMatcher);
             MatcherResult result = engine.Match(script);
 
@@ -65,11 +65,17 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = IndexingMode.Eager,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
-                    new PatternMatcherDefinition {
+                    new PatternMatcherDefinition 
+                    {
                         Name = "A",
                         Pattern = "a"
+                    },
+                    new PatternMatcherDefinition
+                    {
+                        Name = "C",
+                        Pattern = "c"
                     },
                     new PatternMatcherDefinition
                     {
@@ -81,14 +87,36 @@ namespace MatcherTests.Tests.Engine
                         Name = "B",
                         Pattern = "b",
                         IsAuxiliary = true
-                    },
-                    new PatternMatcherDefinition
-                    {
-                        Name = "C",
-                        Pattern = "c"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Actions = new[]
+                {
+                    new MatcherActionDefinition
+                    {
+                        Name = "1",
+                        Action = MatcherActionType.CreateVariable,
+                        FirstVariableName = "1",
+                        Source = VariableValueSource.Value,
+                        Value = "1"
+                    },
+                    new MatcherActionDefinition
+                    {
+                        Name = "Test",
+                        Action = MatcherActionType.Assert,
+                        Assert = AssertType.NotEquals,
+                        FirstVariableName = "1",
+                        SecondVariableName = "1a"
+                    },
+                    new MatcherActionDefinition
+                    {
+                        Name = "1a",
+                        Action = MatcherActionType.CreateVariable,
+                        FirstVariableName = "1a",
+                        Source = VariableValueSource.Value,
+                        Value = "1"
+                    }
+                },
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -100,7 +128,9 @@ namespace MatcherTests.Tests.Engine
                     {
                         Name = "Bs",
                         Parts = new [] { "B", "B" },
-                        PartsMatchMode = MatchMode.Ordered
+                        PartsMatchMode = MatchMode.Ordered,
+                        Actions = new [] { "1", "Test", "1a" },
+                        Cacheable = true
                     }
                 }
             };
@@ -114,6 +144,93 @@ namespace MatcherTests.Tests.Engine
         }
 
         [Fact]
+        public void FragmentPatternMatcherAfterNoiseTest()
+        {
+            LanguageMatcherDefinition languageMatcherDefinition = new LanguageMatcherDefinition
+            {
+                Name = "Test",
+                StartingFragment = "Start",
+                IndexingMode = IndexingMode.Eager,
+                Patterns = new[]
+                {
+                    new PatternMatcherDefinition
+                    {
+                        Name = "A",
+                        Pattern = "a",
+                        IsNoise = true
+                    },
+                    new PatternMatcherDefinition
+                    {
+                        Name = "C",
+                        Pattern = "c"
+                    },
+                    new PatternMatcherDefinition
+                    {
+                        Name = "FragB",
+                        Fragment = "Bs"
+                    },
+                    new PatternMatcherDefinition
+                    {
+                        Name = "B",
+                        Pattern = "b",
+                        IsAuxiliary = true
+                    }
+                },
+                Actions = new[]
+                {
+                    new MatcherActionDefinition
+                    {
+                        Name = "1",
+                        Action = MatcherActionType.CreateVariable,
+                        FirstVariableName = "1",
+                        Source = VariableValueSource.Value,
+                        Value = "1"
+                    },
+                    new MatcherActionDefinition
+                    {
+                        Name = "Test",
+                        Action = MatcherActionType.Assert,
+                        Assert = AssertType.NotEquals,
+                        FirstVariableName = "1",
+                        SecondVariableName = "1a"
+                    },
+                    new MatcherActionDefinition
+                    {
+                        Name = "1a",
+                        Action = MatcherActionType.CreateVariable,
+                        FirstVariableName = "1a",
+                        Source = VariableValueSource.Value,
+                        Value = "1"
+                    }
+                },
+                Fragments = new[]
+                {
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "Start",
+                        Parts = new [] { "C", "[Bs]", "C" },
+                        PartsMatchMode = MatchMode.Ordered
+                    },
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "Bs",
+                        Parts = new [] { "B", "B" },
+                        PartsMatchMode = MatchMode.Ordered,
+                        Actions = new [] { "1", "Test", "1a" },
+                        Cacheable = true
+                    }
+                }
+            };
+            string script = @"cabbc";
+            LanguageMatcher languageMatcher = DefinitionConverter.Convert(languageMatcherDefinition);
+            ILanguageMatchEngine engine = LanguageMatchEngineFactory.Get(GenerationType, languageMatcher);
+            MatcherResult result = engine.Match(script);
+
+            Assert.True(result.Success);
+            Assert.True(CompareXml(@"<Start><C>c</C><Bs><B>b</B><B>b</B></Bs><C>c</C></Start>", result.MatchData.ToXml()));
+        }
+
+        [Fact]
         public void FragmentPatternMatcherNoiseTest()
         {
             LanguageMatcherDefinition languageMatcherDefinition = new LanguageMatcherDefinition
@@ -121,11 +238,17 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = IndexingMode.Eager,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
-                    new PatternMatcherDefinition {
+                    new PatternMatcherDefinition 
+                    {
                         Name = "A",
                         Pattern = "a"
+                    },
+                    new PatternMatcherDefinition
+                    {
+                        Name = "C",
+                        Pattern = "c"
                     },
                     new PatternMatcherDefinition
                     {
@@ -138,14 +261,9 @@ namespace MatcherTests.Tests.Engine
                         Name = "B",
                         Pattern = "b",
                         IsAuxiliary = true
-                    },
-                    new PatternMatcherDefinition
-                    {
-                        Name = "C",
-                        Pattern = "c"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -181,9 +299,10 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = indexingMode,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
-                    new PatternMatcherDefinition {
+                    new PatternMatcherDefinition 
+                    {
                         Name = "A",
                         Pattern = "a"
                     },
@@ -198,7 +317,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "c"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -225,7 +344,7 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = IndexingMode.Eager,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
                     new PatternMatcherDefinition 
                     {
@@ -244,7 +363,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "c"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -263,53 +382,6 @@ namespace MatcherTests.Tests.Engine
             Assert.True(CompareXml(@"<Start><A>a</A><C>c</C></Start>", result.MatchData.ToXml()));
         }
 
-        [Fact]
-        public void MergableTest()
-        {
-            LanguageMatcherDefinition languageMatcherDefinition = new LanguageMatcherDefinition
-            {
-                Name = "Test",
-                StartingFragment = "Start",
-                IndexingMode = IndexingMode.Eager,
-                Patterns = new PatternMatcherDefinition[]
-                {
-                    new PatternMatcherDefinition
-                    {
-                        Name = "A",
-                        Pattern = "a+",
-                        Mergable = true
-                    },
-                    new PatternMatcherDefinition
-                    {
-                        Name = "B",
-                        Pattern = "b",
-                        IsNoise = true
-                    },
-                    new PatternMatcherDefinition
-                    {
-                        Name = "C",
-                        Pattern = "c"
-                    },
-                },
-                Fragments = new FragmentMatcherDefinition[]
-                {
-                    new FragmentMatcherDefinition
-                    {
-                        Name = "Start",
-                        Parts = new [] { "A", "C" },
-                        PartsMatchMode = MatchMode.Ordered
-                    }
-                }
-            };
-            string script = @"abac";
-            LanguageMatcher languageMatcher = DefinitionConverter.Convert(languageMatcherDefinition);
-            ILanguageMatchEngine engine = LanguageMatchEngineFactory.Get(GenerationType, languageMatcher);
-            MatcherResult result = engine.Match(script);
-
-            Assert.True(result.Success);
-            Assert.True(CompareXml(@"<Start><A>aa</A><C>c</C></Start>", result.MatchData.ToXml()));
-        }
-
         [Theory]
         [InlineData(IndexingMode.Eager)]
         [InlineData(IndexingMode.Lazy)]
@@ -321,7 +393,7 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = indexingMode,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
                     new PatternMatcherDefinition
                     {
@@ -339,7 +411,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "c"
                     },
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -372,7 +444,7 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = indexingMode,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
                     new PatternMatcherDefinition
                     {
@@ -390,7 +462,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "c"
                     },
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -422,7 +494,7 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = indexingMode,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
                     new PatternMatcherDefinition
                     {
@@ -440,7 +512,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "c"
                     },
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -469,9 +541,10 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = IndexingMode.Eager,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
-                    new PatternMatcherDefinition {
+                    new PatternMatcherDefinition 
+                    {
                         Name = "A",
                         Pattern = "a"
                     },
@@ -492,7 +565,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "c"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -522,7 +595,7 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = indexingMode,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
                     new PatternMatcherDefinition
                     {
@@ -530,7 +603,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "b"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -566,6 +639,174 @@ namespace MatcherTests.Tests.Engine
         [InlineData(IndexingMode.Eager)]
         [InlineData(IndexingMode.Lazy)]
         [InlineData(IndexingMode.None)]
+        public void NoMinMatchedMultiplePartsTest(IndexingMode indexingMode)
+        {
+            LanguageMatcherDefinition languageMatcherDefinition = new LanguageMatcherDefinition
+            {
+                Name = "Test",
+                StartingFragment = "Start",
+                IndexingMode = indexingMode,
+                Patterns = new[]
+                {
+                    new PatternMatcherDefinition
+                    {
+                        Name = "A",
+                        Pattern = "a"
+                    },
+                    new PatternMatcherDefinition
+                    {
+                        Name = "B",
+                        Pattern = "b"
+                    }
+                },
+                Fragments = new[]
+                {
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "Start",
+                        Parts = new [] { "[As]", "[Bs]" },
+                        PartsMatchMode = MatchMode.Ordered
+                    },
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "As",
+                        Parts = new [] { "A" },
+                        PartsMatchMode = MatchMode.Multiple,
+                        MinMatchedParts = 0
+                    },
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "Bs",
+                        Parts = new [] { "B" },
+                        PartsMatchMode = MatchMode.Multiple
+                    }
+                }
+            };
+            string script = @"bb";
+            LanguageMatcher languageMatcher = DefinitionConverter.Convert(languageMatcherDefinition);
+            ILanguageMatchEngine engine = LanguageMatchEngineFactory.Get(GenerationType, languageMatcher);
+            MatcherResult result = engine.Match(script);
+
+            Assert.True(result.Success);
+            Assert.True(CompareXml(@"<Start><As></As><Bs><B>b</B><B>b</B></Bs></Start>", result.MatchData.ToXml()));
+        }
+
+        [Theory]
+        [InlineData(IndexingMode.Eager)]
+        [InlineData(IndexingMode.Lazy)]
+        [InlineData(IndexingMode.None)]
+        public void NoMinMatchedOrderedPartsTest(IndexingMode indexingMode)
+        {
+            LanguageMatcherDefinition languageMatcherDefinition = new LanguageMatcherDefinition
+            {
+                Name = "Test",
+                StartingFragment = "Start",
+                IndexingMode = indexingMode,
+                Patterns = new[]
+                {
+                    new PatternMatcherDefinition
+                    {
+                        Name = "A",
+                        Pattern = "a"
+                    },
+                    new PatternMatcherDefinition
+                    {
+                        Name = "B",
+                        Pattern = "b"
+                    }
+                },
+                Fragments = new[]
+                {
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "Start",
+                        Parts = new [] { "[As]", "[Bs]" },
+                        PartsMatchMode = MatchMode.Ordered
+                    },
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "As",
+                        Parts = new [] { "A" },
+                        PartsMatchMode = MatchMode.Ordered,
+                        MinMatchedParts = 0
+                    },
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "Bs",
+                        Parts = new [] { "B" },
+                        PartsMatchMode = MatchMode.Multiple
+                    }
+                }
+            };
+            string script = @"bb";
+            LanguageMatcher languageMatcher = DefinitionConverter.Convert(languageMatcherDefinition);
+            ILanguageMatchEngine engine = LanguageMatchEngineFactory.Get(GenerationType, languageMatcher);
+            MatcherResult result = engine.Match(script);
+
+            Assert.True(result.Success);
+            Assert.True(CompareXml(@"<Start><As></As><Bs><B>b</B><B>b</B></Bs></Start>", result.MatchData.ToXml()));
+        }
+
+        [Theory]
+        [InlineData(IndexingMode.Eager)]
+        [InlineData(IndexingMode.Lazy)]
+        [InlineData(IndexingMode.None)]
+        public void NoMinMatchedOnePartsTest(IndexingMode indexingMode)
+        {
+            LanguageMatcherDefinition languageMatcherDefinition = new LanguageMatcherDefinition
+            {
+                Name = "Test",
+                StartingFragment = "Start",
+                IndexingMode = indexingMode,
+                Patterns = new[]
+                {
+                    new PatternMatcherDefinition
+                    {
+                        Name = "A",
+                        Pattern = "a"
+                    },
+                    new PatternMatcherDefinition
+                    {
+                        Name = "B",
+                        Pattern = "b"
+                    }
+                },
+                Fragments = new[]
+                {
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "Start",
+                        Parts = new [] { "[As]", "[Bs]" },
+                        PartsMatchMode = MatchMode.Ordered
+                    },
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "As",
+                        Parts = new [] { "A" },
+                        PartsMatchMode = MatchMode.One,
+                        MinMatchedParts = 0
+                    },
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "Bs",
+                        Parts = new [] { "B" },
+                        PartsMatchMode = MatchMode.Multiple
+                    }
+                }
+            };
+            string script = @"bb";
+            LanguageMatcher languageMatcher = DefinitionConverter.Convert(languageMatcherDefinition);
+            ILanguageMatchEngine engine = LanguageMatchEngineFactory.Get(GenerationType, languageMatcher);
+            MatcherResult result = engine.Match(script);
+
+            Assert.True(result.Success);
+            Assert.True(CompareXml(@"<Start><As></As><Bs><B>b</B><B>b</B></Bs></Start>", result.MatchData.ToXml()));
+        }
+
+        [Theory]
+        [InlineData(IndexingMode.Eager)]
+        [InlineData(IndexingMode.Lazy)]
+        [InlineData(IndexingMode.None)]
         public void EqualToMinMatchedMultiplePartsTest(IndexingMode indexingMode)
         {
             LanguageMatcherDefinition languageMatcherDefinition = new LanguageMatcherDefinition
@@ -573,7 +814,7 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = indexingMode,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
                     new PatternMatcherDefinition
                     {
@@ -581,7 +822,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "b"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -624,7 +865,7 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = indexingMode,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
                     new PatternMatcherDefinition
                     {
@@ -632,7 +873,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "b"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -675,7 +916,7 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = indexingMode,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
                     new PatternMatcherDefinition
                     {
@@ -693,7 +934,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "c"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -749,9 +990,10 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = indexingMode,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
-                    new PatternMatcherDefinition {
+                    new PatternMatcherDefinition 
+                    {
                         Name = "A",
                         Pattern = "a"
                     },
@@ -766,7 +1008,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "c"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -810,9 +1052,10 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = indexingMode,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
-                    new PatternMatcherDefinition {
+                    new PatternMatcherDefinition 
+                    {
                         Name = "A",
                         Pattern = "a"
                     },
@@ -827,7 +1070,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "c"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -870,9 +1113,10 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = indexingMode,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
-                    new PatternMatcherDefinition {
+                    new PatternMatcherDefinition 
+                    {
                         Name = "A",
                         Pattern = "a"
                     },
@@ -882,7 +1126,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "b"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -920,9 +1164,10 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = indexingMode,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
-                    new PatternMatcherDefinition {
+                    new PatternMatcherDefinition 
+                    {
                         Name = "A",
                         Pattern = "a"
                     },
@@ -932,7 +1177,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "b"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -969,9 +1214,10 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = indexingMode,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
-                    new PatternMatcherDefinition {
+                    new PatternMatcherDefinition 
+                    {
                         Name = "A",
                         Pattern = "a"
                     },
@@ -986,7 +1232,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "c"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -1030,9 +1276,10 @@ namespace MatcherTests.Tests.Engine
                 Name = "Test",
                 StartingFragment = "Start",
                 IndexingMode = indexingMode,
-                Patterns = new PatternMatcherDefinition[]
+                Patterns = new []
                 {
-                    new PatternMatcherDefinition {
+                    new PatternMatcherDefinition 
+                    {
                         Name = "E",
                         Pattern = "^"
                     },
@@ -1062,7 +1309,7 @@ namespace MatcherTests.Tests.Engine
                         Pattern = "2"
                     }
                 },
-                Fragments = new FragmentMatcherDefinition[]
+                Fragments = new []
                 {
                     new FragmentMatcherDefinition
                     {
@@ -1114,6 +1361,116 @@ namespace MatcherTests.Tests.Engine
 
             Assert.True(result.Success);
             Assert.True(CompareXml(@"<Start><Subtraction><Addition><Number>2</Number><A>+</A><Number>2</Number></Addition><S>-</S><Division><Multiplication><Exponent><Number>2</Number><E>^</E><Number>2</Number></Exponent><M>*</M><Number>2</Number></Multiplication><D>/</D><Number>2</Number></Division></Subtraction></Start>", result.MatchData.ToXml()));
+        }
+
+        [Theory]
+        [InlineData(IndexingMode.Eager)]
+        [InlineData(IndexingMode.Lazy)]
+        [InlineData(IndexingMode.None)]
+        public void ActionMatcherTest(IndexingMode indexingMode)
+        {
+            LanguageMatcherDefinition languageMatcherDefinition = new LanguageMatcherDefinition
+            {
+                Name = "Test",
+                StartingFragment = "Start",
+                IndexingMode = indexingMode,
+                Patterns = new []
+                {
+                    new PatternMatcherDefinition 
+                    {
+                        Name = "A",
+                        Pattern = "a"
+                    }
+                },
+                Actions = new []
+                {
+                  new MatcherActionDefinition
+                  {
+                      Name = "Create1",
+                      Action = MatcherActionType.CreateVariable,
+                      Source = VariableValueSource.Value,
+                      FirstVariableName = "count",
+                      Value = 0
+                  },
+                  new MatcherActionDefinition
+                  {
+                      Name = "Create2",
+                      Action = MatcherActionType.CreateVariable,
+                      Source = VariableValueSource.Value,
+                      FirstVariableName = "change",
+                      Value = 1
+                  },
+                  new MatcherActionDefinition
+                  {
+                      Name = "Create3",
+                      Action = MatcherActionType.CreateVariable,
+                      Source = VariableValueSource.Value,
+                      FirstVariableName = "expected",
+                      Value = 3
+                  },
+                  new MatcherActionDefinition
+                  {
+                      Name = "Increment",
+                      Action = MatcherActionType.UpdateVariable,
+                      Change = VariableUpdateAction.Add,
+                      FirstVariableName = "count",
+                      SecondVariableName = "change"
+                  },
+                  new MatcherActionDefinition
+                  {
+                      Name = "Assert",
+                      Action = MatcherActionType.Assert,
+                      Assert = AssertType.Equals,
+                      SecondVariableName = "count",
+                      FirstVariableName = "expected"
+                  },
+
+                },
+                Fragments = new []
+                {
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "Start",
+                        Parts = new [] { "[A1]", "[A2]", "[A3]", "[A4]" },
+                        PartsMatchMode = MatchMode.One
+                    },
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "A1",
+                        Parts = new [] { "A" },
+                        PartsMatchMode = MatchMode.Multiple,
+                        Actions = new [] { "Create1", "Create2", "Create3", "Increment", "Assert" }
+                    },
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "A2",
+                        Parts = new [] { "A" },
+                        PartsMatchMode = MatchMode.Multiple,
+                        Actions = new [] { "Increment", "Assert" }
+                    },
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "A3",
+                        Parts = new [] { "A" },
+                        PartsMatchMode = MatchMode.Multiple,
+                        Actions = new [] { "Increment", "Assert" }
+                    },
+                    new FragmentMatcherDefinition
+                    {
+                        Name = "A4",
+                        Parts = new [] { "A" },
+                        PartsMatchMode = MatchMode.Multiple,
+                        Actions = new [] { "Increment", "Assert" }
+                    }
+                }
+            };
+            string script = @"a";
+            LanguageMatcher languageMatcher = DefinitionConverter.Convert(languageMatcherDefinition);
+            ILanguageMatchEngine engine = LanguageMatchEngineFactory.Get(GenerationType, languageMatcher);
+            MatcherResult result = engine.Match(script);
+
+            Assert.True(result.Success);
+            Assert.True(CompareXml(@"<Start><A3><A>a</A></A3></Start>", result.MatchData.ToXml()));
         }
 
         //[Fact]

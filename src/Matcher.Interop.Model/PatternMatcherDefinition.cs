@@ -8,8 +8,6 @@ namespace Synfron.Staxe.Matcher.Interop.Model
 
 		public bool IsNoise { get; set; }
 
-		public bool Mergable { get; set; }
-
 		public string Fragment { get; set; }
 
 		public bool IsAuxiliary { get; set; }

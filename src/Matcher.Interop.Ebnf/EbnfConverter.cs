@@ -65,7 +65,10 @@ namespace Synfron.Staxe.Matcher.Interop.Bnf
 
 			AddRules((FragmentMatchData)matcherResult.MatchData);
 
-			_languageMatcher.IndexingMode = IndexingMode.Eager;
+			if (IgnoreWhitespace)
+            {
+				_languageMatcher.IndexingMode = IndexingMode.Eager;
+            }
 			_languageMatcher.StartingFragment = _languageMatcher.Fragments.FirstOrDefault();
 
 			return _languageMatcher;

@@ -130,7 +130,7 @@ namespace MatcherTests.Tests.Actions
         [InlineData(VariableValueSource.StringPartsLength, 4)]
         [InlineData(VariableValueSource.PartsCount, 3)]
         [InlineData(VariableValueSource.PartsLength, 14)]
-        [InlineData(VariableValueSource.PartsText, "abcTestd")]
+        [InlineData(VariableValueSource.PartsXml, "<Str1>abc</Str1><Test></Test><Str2>d</Str2>")]
         [InlineData(VariableValueSource.Value, "abc")]
         public void CreateVariableMatcherAction_Perform(VariableValueSource source, object expected)
         {
@@ -145,6 +145,7 @@ namespace MatcherTests.Tests.Actions
             {
                 new StringMatchData
                 {
+                    Name = "Str1",
                     Length = 3,
                     Text = "abc"
                 },
@@ -155,6 +156,7 @@ namespace MatcherTests.Tests.Actions
                 },
                 new StringMatchData
                 {
+                    Name = "Str2",
                     Length = 1,
                     Text = "d"
                 }

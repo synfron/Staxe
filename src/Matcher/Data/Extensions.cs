@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Synfron.Staxe.Matcher.Data
 {
-    internal static class Extensions
+    public static class Extensions
     {
 
         public static int GetEndIndex(this IMatchData matchData)

@@ -50,7 +50,7 @@ namespace Synfron.Staxe.Matcher.Interop.Model
                 Dictionary<string, CreateVariableMatcherAction> createVariableMap = new Dictionary<string, CreateVariableMatcherAction>();
                 foreach (MatcherActionDefinition actionDefinition in languageMatcherModel.Actions)
                 {
-                    if (actionDefinition.ActionType == MatcherActionType.CreateVariable)
+                    if (actionDefinition.Action == MatcherActionType.CreateVariable)
                     {
                         CreateVariableMatcherAction action = new CreateVariableMatcherAction
                         {
@@ -68,7 +68,7 @@ namespace Synfron.Staxe.Matcher.Interop.Model
                 foreach (MatcherActionDefinition actionDefinition in languageMatcherModel.Actions)
                 {
                     MatcherAction action = null;
-                    switch (actionDefinition.ActionType)
+                    switch (actionDefinition.Action)
                     {
                         case MatcherActionType.Assert:
                             {
@@ -97,7 +97,7 @@ namespace Synfron.Staxe.Matcher.Interop.Model
                         case MatcherActionType.CreateVariable:
                             break;
                         default:
-                            throw new InvalidOperationException($"Action type {actionDefinition.ActionType} is not supported");
+                            throw new InvalidOperationException($"Action type {actionDefinition.Action} is not supported");
                     }
                 }
             }
@@ -117,7 +117,6 @@ namespace Synfron.Staxe.Matcher.Interop.Model
                     {
                         PatternMatcher patternMatcher = isEager ? PatternReader.Parse(patternIndex + 1, model.Name, model.Pattern) : PatternReader.LazyParse(patternIndex + 1, model.Name, model.Pattern);
                         patternMatcher.IsNoise = model.IsNoise;
-                        patternMatcher.Mergable = model.Mergable;
                         patternMatcherMap.Add(patternMatcher.Name, patternMatcher);
                         if (!model.IsAuxiliary)
                         {
@@ -245,7 +244,6 @@ namespace Synfron.Staxe.Matcher.Interop.Model
 					{
                         IsAuxiliary = isAuxilary,
 						IsNoise = patternMatcher.IsNoise,
-						Mergable = patternMatcher.Mergable,
 						Name = patternMatcher.Name,
 						Pattern = patternMatcher is GroupPatternMatcher groupPatternMatcher ? groupPatternMatcher.ToString(true) : patternMatcher.ToString()
 					};
@@ -258,7 +256,7 @@ namespace Synfron.Staxe.Matcher.Interop.Model
                     case UpdateVariableMatcherAction updateVariableMatcherAction:
                         return new MatcherActionDefinition
                         {
-                            ActionType = updateVariableMatcherAction.ActionType,
+                            Action = updateVariableMatcherAction.Action,
                             Name = updateVariableMatcherAction.Name,
                             Change = updateVariableMatcherAction.Change,
                             FirstVariableName = languageMatcher.Blobs[updateVariableMatcherAction.TargetBlobId],
@@ -267,7 +265,7 @@ namespace Synfron.Staxe.Matcher.Interop.Model
                     case CreateVariableMatcherAction createVariableMatcherAction:
                         return new MatcherActionDefinition
                         {
-                            ActionType = createVariableMatcherAction.ActionType,
+                            Action = createVariableMatcherAction.Action,
                             Name = createVariableMatcherAction.Name,
                             Source = createVariableMatcherAction.Source,
                             FirstVariableName = languageMatcher.Blobs[createVariableMatcherAction.BlobId],
@@ -276,7 +274,7 @@ namespace Synfron.Staxe.Matcher.Interop.Model
                     case AssertMatcherAction assertMatcherAction:
                         return new MatcherActionDefinition
                         {
-                            ActionType = assertMatcherAction.ActionType,
+                            Action = assertMatcherAction.Action,
                             Name = assertMatcherAction.Name,
                             Assert = assertMatcherAction.Assert,
                             FirstVariableName = languageMatcher.Blobs[assertMatcherAction.FirstBlobId],

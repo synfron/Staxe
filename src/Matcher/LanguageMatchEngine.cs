@@ -38,7 +38,6 @@ namespace Synfron.Staxe.Matcher
                 IList<PatternMatcher> patterns = LanguageMatcher.Patterns;
                 int patternsCount = LanguageMatcher.Patterns.Count;
                 bool success = true;
-                bool previousNoise = false;
 
                 int currentIndex;
                 while ((currentIndex = state.CurrentIndex) < codeLength)
@@ -49,35 +48,12 @@ namespace Synfron.Staxe.Matcher
                         PatternMatcher pattern = patterns[patternIndex];
                         StringMatchData matchData; 
                         (success, matchData) = PreMatchPattern(ref state, pattern);
+                        if (matchData != null && _logMatches)
+                        {
+                            state.MatchLogBuilder.AppendLine($"{currentIndex}. Prematched {matchData.Name}: {matchData.Text}");
+                        }
                         if (success)
                         {
-                            if (pattern.IsStandard)
-                            {
-                                if (_logMatches)
-                                {
-                                    state.MatchLogBuilder.AppendLine($"{currentIndex}. Prematched {matchData.Name}: {matchData.Text}");
-                                }
-                                if (matchData.IsNoise)
-                                {
-                                    previousNoise = true;
-                                }
-                                else if (previousNoise)
-                                {
-                                    if (state.DistinctIndex > 1)
-                                    {
-                                        StringMatchData previousMatchData = state.DistinctStringMatches[state.DistinctIndex - 2];
-                                        if (previousMatchData.Name == matchData.Name && previousMatchData.Mergable)
-                                        {
-                                            previousMatchData.Text += matchData.Text;
-                                            previousMatchData.Length = state.CurrentIndex - previousMatchData.StartIndex;
-                                            state.DistinctIndex--;
-                                            state.MaxDistinctIndex--;
-                                            state.DistinctStringMatches.RemoveAt(state.DistinctIndex);
-                                        }
-                                    }
-                                    previousNoise = false;
-                                }
-                            }
                             break;
                         }
                     }
@@ -106,42 +82,48 @@ namespace Synfron.Staxe.Matcher
                             Text = state.Code.Substring(startOffset, length),
                             StartIndex = startOffset,
                             Length = length,
-                            Id = pattern.Id,
-                            IsNoise = pattern.IsNoise,
-                            Mergable = pattern.Mergable
+                            Id = pattern.Id
                         };
-                        if (!stringMatchData.IsNoise)
+                        if (!pattern.IsNoise)
                         {
                             state.DistinctStringMatches.Add(stringMatchData);
                             state.DistinctIndex++;
                             state.MaxDistinctIndex++;
                         }
                         state.CurrentIndex = startOffset + length;
-                        state.MaxIndex = state.CurrentIndex;
                     }
                     return (success, stringMatchData);
                 }
                 else if (pattern is FragmentPatternMatcher fragmentPatternMatcher && fragmentPatternMatcher.Fragment is FragmentMatcher fragmentMatcher)
                 {
                     int startIndex = state.CurrentIndex;
-                    int distinctStringMatchesCount = state.DistinctStringMatches.Count;
+                    StringMatchData lastDistinctMatchData = state.DistinctStringMatches.LastOrDefault();
+                    int cacheIndex = lastDistinctMatchData != null ?
+                        lastDistinctMatchData.StartIndex + lastDistinctMatchData.Length :
+                        0;
                     int distinctIndex = state.DistinctIndex;
                     int maxDistinctIndex = state.MaxDistinctIndex;
 
-                    (bool _, FragmentMatchData partMatcherData) = MatchByFragmentMatcher(ref state, fragmentPatternMatcher.Fragment);
-                    if (fragmentMatcher.Cacheable)
+                    (bool fragmentSuccess, FragmentMatchData partMatchData) = MatchByFragmentMatcher(ref state, fragmentPatternMatcher.Fragment);
+                    if (fragmentSuccess && fragmentMatcher.Cacheable)
                     {
-                        state.MatchCache[new ValueTuple<string, int>(fragmentMatcher.Name, startIndex)] = partMatcherData;
+                        state.MatchCache[new ValueTuple<string, int>(fragmentMatcher.Name, cacheIndex)] = partMatchData;
                     }
-                    if (pattern.IsNoise)
+                    if (!fragmentSuccess || fragmentPatternMatcher.Fragment.Negate || pattern.IsNoise)
                     {
-                        state.DistinctStringMatches.RemoveRange(distinctStringMatchesCount, state.DistinctStringMatches.Count - distinctStringMatchesCount);
+                        state.DistinctStringMatches.RemoveRange(distinctIndex, state.DistinctIndex - distinctIndex);
                         state.DistinctIndex = distinctIndex;
                         state.MaxDistinctIndex = maxDistinctIndex;
+                        if (!fragmentSuccess || fragmentPatternMatcher.Fragment.Negate)
+                        {
+                            state.CurrentIndex = startIndex;
+                        }
+                        if (pattern.IsNoise && partMatchData != null)
+                        {
+                            partMatchData.EndDistinctIndex = distinctIndex;
+                        }
                     }
-                    state.CurrentIndex = state.MaxIndex;
-                    bool success = state.CurrentIndex > startIndex;
-                    return (success, null);
+                    return (fragmentSuccess, null);
                 }
                 return (false, null);
             }
@@ -160,7 +142,7 @@ namespace Synfron.Staxe.Matcher
                 state.MatchCache = new Dictionary<ValueTuple<string, int>, FragmentMatchData>();
             }
 
-            protected override (bool success, StringMatchData matchData) MatchPattern(ref State state, PatternMatcher pattern, bool required, bool readOnly = false)
+            protected override (bool success, StringMatchData matchData) MatchPattern(ref State state, FragmentMatchData fragmentMatchData, PatternMatcher pattern, bool required, bool readOnly = false)
             {
                 if (pattern != null)
                 {
@@ -175,14 +157,15 @@ namespace Synfron.Staxe.Matcher
                             Text = state.Code.Substring(startOffset, length),
                             StartIndex = startOffset,
                             Length = length,
-                            Id = pattern.Id,
-                            IsNoise = pattern.IsNoise,
-                            Mergable = pattern.Mergable
+                            Id = pattern.Id
                         };
                         if (!readOnly)
                         {
                             state.CurrentIndex = startOffset + length;
-                            state.MaxIndex = Math.Max(state.MaxIndex, state.CurrentIndex);
+                            if (fragmentMatchData.StartIndex < 0)
+                            {
+                                fragmentMatchData.StartIndex = startOffset;
+                            }
                         }
                     }
                     else if (!required)
@@ -266,7 +249,7 @@ namespace Synfron.Staxe.Matcher
             if (
                 success && 
                 matchFullText && 
-                state.CurrentIndex != (state.PreMatchSuccess ? 
+                state.CurrentIndex < (state.PreMatchSuccess ? 
                     state.DistinctStringMatches.LastOrDefault().GetEndIndex() : state.Code.Length
                 ))
             {
@@ -277,7 +260,7 @@ namespace Synfron.Staxe.Matcher
             return new MatcherResult(resultMatchData, success, state.CurrentIndex, failureIndex, _logMatches ? state.MatchLogBuilder.ToString() : string.Empty);
         }
 
-        protected virtual (bool success, StringMatchData matchData) MatchPattern(ref State state, PatternMatcher pattern, bool required, bool readOnly = false)
+        protected virtual (bool success, StringMatchData matchData) MatchPattern(ref State state, FragmentMatchData fragmentMatchData, PatternMatcher pattern, bool required, bool readOnly = false)
         {
             if (pattern == null)
             {
@@ -296,6 +279,10 @@ namespace Synfron.Staxe.Matcher
                 {
                     state.DistinctIndex++;
                     state.CurrentIndex = stringMatchData.StartIndex + stringMatchData.Length;
+                    if (fragmentMatchData.StartIndex < 0)
+                    {
+                        fragmentMatchData.StartIndex = stringMatchData.StartIndex;
+                    }
                 }
                 else if (!required)
                 {
@@ -317,9 +304,7 @@ namespace Synfron.Staxe.Matcher
                         Text = state.Code.Substring(startOffset, length),
                         StartIndex = startOffset,
                         Length = length,
-                        Id = pattern.Id,
-                        IsNoise = pattern.IsNoise,
-                        Mergable = pattern.Mergable
+                        Id = pattern.Id
                     };
                     if (!pattern.IsNoise)
                     {
@@ -330,7 +315,10 @@ namespace Synfron.Staxe.Matcher
                     if (!readOnly)
                     {
                         state.CurrentIndex = startOffset + length;
-                        state.MaxIndex = Math.Max(state.MaxIndex, state.CurrentIndex);
+                        if (fragmentMatchData.StartIndex < 0)
+                        {
+                            fragmentMatchData.StartIndex = startOffset;
+                        }
                     }
                 }
                 else if (!required)
@@ -342,48 +330,59 @@ namespace Synfron.Staxe.Matcher
             return (false, default);
         }
 
-        private bool MatchPartByFragmentMatcher(ref State state, FragmentMatchData matchData, FragmentMatcher part)
+        private bool MatchPartByFragmentMatcher(ref State state, FragmentMatchData parentMatchData, FragmentMatcher part)
         {
             bool success;
             bool negate = part.Negate;
-            if (!part.Cacheable || !state.MatchCache.TryGetValue(new ValueTuple<string, int>(part.Name, state.CurrentIndex), out FragmentMatchData partMatcherData))
+            if (_logMatches)
+            {
+                state.MatchLogBuilder.AppendLine($"{new string('\t', state.Id)} {state.CurrentIndex}. Try: {part}");
+            }
+            if (!part.Cacheable || !state.MatchCache.TryGetValue(new ValueTuple<string, int>(part.Name, state.CurrentIndex), out FragmentMatchData partMatchData))
             {
                 int startIndex = state.CurrentIndex;
                 int distinctIndex = state.DistinctIndex;
-                (success, partMatcherData) = MatchByFragmentMatcher(ref state, part);
-                if (part.Cacheable)
-                {
-                    state.MatchCache[new ValueTuple<string, int>(part.Name, startIndex)] = partMatcherData;
-                }
+                (success, partMatchData) = MatchByFragmentMatcher(ref state, part);
                 if (!success || negate)
                 {
                     state.CurrentIndex = startIndex;
                     state.DistinctIndex = distinctIndex;
                 }
+                if (part.Cacheable)
+                {
+                    state.MatchCache[new ValueTuple<string, int>(part.Name, startIndex)] = partMatchData;
+                }
             }
-            else if ((success = partMatcherData != null) && !negate)
+            else if ((success = partMatchData != null) && !negate)
             {
-                state.CurrentIndex = partMatcherData.StartIndex + partMatcherData.Length;
-                state.MaxIndex = Math.Max(state.MaxIndex, state.CurrentIndex);
-                state.DistinctIndex = partMatcherData.EndDistinctIndex;
+                state.CurrentIndex = partMatchData.StartIndex + partMatchData.Length;
+                state.DistinctIndex = partMatchData.EndDistinctIndex;
             }
             if (success && !negate)
             {
+                if (parentMatchData.StartIndex < 0)
+                {
+                    parentMatchData.StartIndex = partMatchData.StartIndex;
+                }
                 if (!part.IsNoise)
                 {
-                    if (part.FallThroughMode == FallThroughMode.All || partMatcherData.Parts.Count <= (int)part.FallThroughMode)
+                    if (part.FallThroughMode == FallThroughMode.All || partMatchData.Parts.Count <= (int)part.FallThroughMode)
                     {
-                        matchData.Parts.AddRange(partMatcherData.Parts);
+                        parentMatchData.Parts.AddRange(partMatchData.Parts);
                     }
                     else
                     {
-                        matchData.Parts.Add(partMatcherData);
+                        parentMatchData.Parts.Add(partMatchData);
                     }
                 }
                 if (part.ClearCache)
                 {
                     state.MatchCache.Clear();
                 }
+            }
+            if (_logMatches)
+            {
+                state.MatchLogBuilder.AppendLine($"{new string('\t', state.Id)} {state.CurrentIndex}. {(success ? "Passed" : "Failed")}: {part}");
             }
             return success ^ negate;
         }
@@ -393,20 +392,21 @@ namespace Synfron.Staxe.Matcher
             FragmentMatchData matchData = new FragmentMatchData
             {
                 Name = matcher.Name,
-                StartIndex = state.CurrentIndex,
+                StartIndex = -1,
                 ExpressionOrder = matcher.ExpressionOrder
             };
             StringMatchData endMatchData = default;
-            bool success = MatchFragmentBounds(ref state, matcher.Start, matcher, matcher.DiscardBounds, out StringMatchData startMatchData) && MatchFragmentParts(ref state, matcher, matchData) && MatchFragmentBounds(ref state, matcher.End, matcher, matcher.DiscardBounds, out endMatchData);
+            bool success = MatchFragmentBounds(ref state, matcher, matchData, matcher.Start, matcher.DiscardBounds, out StringMatchData startMatchData) && MatchFragmentParts(ref state, matcher, matchData) && MatchFragmentBounds(ref state, matcher, matchData, matcher.End, matcher.DiscardBounds, out endMatchData);
 
             if (success && matcher.Actions != null)
             {
-                IEnumerator<MatcherAction> actionEnumerator = matcher.Actions.GetEnumerator();
-                actionEnumerator.Reset();
-                while (success && actionEnumerator.MoveNext())
+                foreach (MatcherAction action in matcher.Actions)
                 {
-                    MatcherAction action = actionEnumerator.Current;
                     success = action.Perform(state.BlobDatas, matchData.Parts);
+                    if (!success)
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -437,32 +437,32 @@ namespace Synfron.Staxe.Matcher
             return (false, null);
         }
 
-        private bool MatchFragmentParts(ref State state, FragmentMatcher matcher, FragmentMatchData matchData)
+        private bool MatchFragmentParts(ref State state, FragmentMatcher parentMatcher, FragmentMatchData parentMatchData)
         {
             bool success = true;
-            if (matcher.Parts.Count > 0)
+            if (parentMatcher.Parts.Count > 0)
             {
-                switch (matcher.PartsMatchMode)
+                switch (parentMatcher.PartsMatchMode)
                 {
                     case MatchMode.Multiple:
-                        success = MatchFragmentPartsMultipleMode(ref state, matcher, matchData);
+                        success = MatchFragmentPartsMultipleMode(ref state, parentMatcher, parentMatchData);
                         break;
                     case MatchMode.One:
-                        success = MatchFragmentPartsOneMode(ref state, matcher, matchData);
+                        success = MatchFragmentPartsOneMode(ref state, parentMatcher, parentMatchData);
                         break;
                     case MatchMode.Ordered:
-                        success = MatchFragmentPartsOrderedMode(ref state, matcher, matchData);
+                        success = MatchFragmentPartsOrderedMode(ref state, parentMatcher, parentMatchData);
                         break;
                 }
             }
-            if (!success ^ matcher.Negate)
+            if (!success ^ parentMatcher.Negate)
             {
                 state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
             }
             return success;
         }
 
-        private bool MatchFragmentPartsMultipleMode(ref State state, FragmentMatcher matcher, FragmentMatchData matchData)
+        private bool MatchFragmentPartsMultipleMode(ref State state, FragmentMatcher parentMatcher, FragmentMatchData parentMatchData)
         {
             bool overallSuccess = false;
             bool subSuccess;
@@ -470,19 +470,19 @@ namespace Synfron.Staxe.Matcher
             StringMatchData range = default;
             int matchCount = 0;
             int distinctIndex = state.DistinctIndex;
-            MatchPattern(ref state, matcher.PartsPadding, false);
+            MatchPattern(ref state, parentMatchData, parentMatcher.PartsPadding, false);
             do
             {
                 subSuccess = false;
-                foreach (IMatcher part in matcher.Parts)
+                foreach (IMatcher part in parentMatcher.Parts)
                 {
-                    bool individualSuccess = MatchFragmentPart(ref state, matchData, part);
+                    bool individualSuccess = MatchFragmentPart(ref state, parentMatchData, part);
                     subSuccess |= individualSuccess;
                     if (individualSuccess)
                     {
                         matchCount++;
                         distinctIndex = state.DistinctIndex;
-                        (delimiterSuccess, range) = MatchPattern(ref state, matcher.PartsDelimiter, matcher.PartsDelimiterRequired);
+                        (delimiterSuccess, range) = MatchPattern(ref state, parentMatchData, parentMatcher.PartsDelimiter, parentMatcher.PartsDelimiterRequired);
                         break;
                     }
                 }
@@ -496,20 +496,19 @@ namespace Synfron.Staxe.Matcher
             }
             if (overallSuccess)
             {
-                MatchPattern(ref state, matcher.PartsPadding, false);
+                MatchPattern(ref state, parentMatchData, parentMatcher.PartsPadding, false);
             }
-            bool thresholdSuccess = (matcher.MinMatchedParts ?? 1) <= matchCount;
-            return overallSuccess && thresholdSuccess;
+            return (parentMatcher.MinMatchedParts ?? 1) <= matchCount;
         }
 
-        private bool MatchFragmentPartsOneMode(ref State state, FragmentMatcher matcher, FragmentMatchData matchData)
+        private bool MatchFragmentPartsOneMode(ref State state, FragmentMatcher parentMatcher, FragmentMatchData parentMatchData)
         {
             bool success = false;
             int matchCount = 0;
-            MatchPattern(ref state, matcher.PartsPadding, false);
-            foreach (IMatcher part in matcher.Parts)
+            MatchPattern(ref state, parentMatchData, parentMatcher.PartsPadding, false);
+            foreach (IMatcher part in parentMatcher.Parts)
             {
-                success = MatchFragmentPart(ref state, matchData, part);
+                success = MatchFragmentPart(ref state, parentMatchData, part);
                 if (success)
                 {
                     matchCount++;
@@ -518,26 +517,25 @@ namespace Synfron.Staxe.Matcher
             }
             if (success)
             {
-                MatchPattern(ref state, matcher.PartsPadding, false);
+                MatchPattern(ref state, parentMatchData, parentMatcher.PartsPadding, false);
             }
-            bool thresholdSuccess = (matcher.MinMatchedParts ?? 1) <= 0 || matchCount > 0;
-            return thresholdSuccess;
+            return (parentMatcher.MinMatchedParts ?? 1) <= 0 || matchCount > 0;
         }
 
-        private bool MatchFragmentPartsOrderedMode(ref State state, FragmentMatcher matcher, FragmentMatchData matchData)
+        private bool MatchFragmentPartsOrderedMode(ref State state, FragmentMatcher parentMatcher, FragmentMatchData parentMatchData)
         {
             bool success = true;
             bool partSuccess;
             int matchCount = 0;
             StringMatchData stringMatchData = default;
             int distinctIndex = state.DistinctIndex;
-            MatchPattern(ref state, matcher.PartsPadding, false);
-            for (int partIndex = 0; partIndex < matcher.Parts.Count; partIndex++)
+            MatchPattern(ref state, parentMatchData, parentMatcher.PartsPadding, false);
+            for (int partIndex = 0; partIndex < parentMatcher.Parts.Count; partIndex++)
             {
                 if (partIndex > 0)
                 {
                     distinctIndex = state.DistinctIndex;
-                    (partSuccess, stringMatchData) = MatchPattern(ref state, matcher.PartsDelimiter, matcher.PartsDelimiterRequired);
+                    (partSuccess, stringMatchData) = MatchPattern(ref state, parentMatchData, parentMatcher.PartsDelimiter, parentMatcher.PartsDelimiterRequired);
                     success = partSuccess;
                     if (!success)
                     {
@@ -545,8 +543,8 @@ namespace Synfron.Staxe.Matcher
                     }
                 }
 
-                IMatcher part = matcher.Parts[partIndex];
-                success = MatchFragmentPart(ref state, matchData, part);
+                IMatcher part = parentMatcher.Parts[partIndex];
+                success = MatchFragmentPart(ref state, parentMatchData, part);
                 if (!success)
                 {
                     if (stringMatchData != null)
@@ -563,63 +561,70 @@ namespace Synfron.Staxe.Matcher
             }
             if (success)
             {
-                MatchPattern(ref state, matcher.PartsPadding, false);
+                MatchPattern(ref state, parentMatchData, parentMatcher.PartsPadding, false);
             }
-            bool thresholdSuccess = (matcher.MinMatchedParts ?? matcher.Parts.Count) <= matchCount;
-            return success || thresholdSuccess;
+            return (parentMatcher.MinMatchedParts ?? parentMatcher.Parts.Count) <= matchCount;
         }
 
-        private bool MatchFragmentPart(ref State state, FragmentMatchData matchData, IMatcher part)
+        private bool MatchFragmentPart(ref State state, FragmentMatchData parentMatchData, IMatcher part)
         {
-            int currentId = ++state.Id;
-            if (_logMatches)
-            {
-                state.MatchLogBuilder.AppendLine($"{new string('\t', currentId)} {state.CurrentIndex}. Try: {part}");
-            }
+            state.Id++;
             bool success = false;
             switch (part)
             {
                 case FragmentMatcher partFragmentMatcher:
-                    success = MatchPartByFragmentMatcher(ref state, matchData, partFragmentMatcher);
+                    success = MatchPartByFragmentMatcher(ref state, parentMatchData, partFragmentMatcher);
                     break;
                 case PatternMatcher partPatternMatcher:
-                    success = MatchPartByTextMatcher(ref state, matchData, partPatternMatcher);
+                    success = MatchPartByTextMatcher(ref state, parentMatchData, partPatternMatcher);
                     break;
+            }
+            state.Id--;
+            return success;
+        }
+
+        private bool MatchPartByTextMatcher(ref State state, FragmentMatchData parentMatchData, PatternMatcher part)
+        {
+            int startIndex = state.CurrentIndex;
+            if (_logMatches)
+            {
+                state.MatchLogBuilder.AppendLine($"{new string('\t', state.Id)} {startIndex}. Try: {part}");
+            }
+
+            (bool success, StringMatchData stringMatchData) = MatchPattern(ref state, parentMatchData, part, true);
+            if (success)
+            {
+                parentMatchData.Parts.Add(stringMatchData);
+                if (_logMatches)
+                {
+                    state.MatchLogBuilder.AppendLine($"{new string('\t', state.Id + 1)} {(stringMatchData?.StartIndex ?? startIndex)}. Matched: {stringMatchData.Text}");
+                }
             }
 
             if (_logMatches)
             {
-                state.MatchLogBuilder.AppendLine($"{new string('\t', currentId)} {state.CurrentIndex}. {(success ? "Passed" : "Failed")}: {part}");
+                state.MatchLogBuilder.AppendLine($"{new string('\t', state.Id)} {(success && stringMatchData != null ? stringMatchData.StartIndex + stringMatchData.Length : startIndex)}. {(success ? "Passed" : "Failed")}: {part}");
             }
-            state.Id = currentId - 1;
             return success;
         }
 
-        private bool MatchPartByTextMatcher(ref State state, FragmentMatchData matchData, PatternMatcher part)
+        private bool MatchFragmentBounds(ref State state, FragmentMatcher parentMatcher, FragmentMatchData parentMatchData, PatternMatcher patternMatcher, bool readOnly, out StringMatchData matchData)
         {
-            (bool success, StringMatchData stringMatchData) = MatchPattern(ref state, part, true);
-            if (success)
+            if (patternMatcher == null)
             {
-                matchData.Parts.Add(stringMatchData);
-                if (_logMatches)
-                {
-                    state.MatchLogBuilder.AppendLine($"{new string('\t', state.Id + 1)} {state.CurrentIndex}. Matched: {stringMatchData.Text}");
-                }
+                matchData = default;
+                return true;
             }
-            return success;
-        }
-
-        private bool MatchFragmentBounds(ref State state, PatternMatcher patternMatcher, FragmentMatcher matcher, bool readOnly, out StringMatchData matchData)
-        {
             bool success;
-            (success, matchData) = MatchPattern(ref state, patternMatcher, true, readOnly);
-            if (!success ^ matcher.Negate)
+            int startIndex = state.CurrentIndex;
+            (success, matchData) = MatchPattern(ref state, parentMatchData, patternMatcher, true, readOnly);
+            if (!success ^ parentMatcher.Negate)
             {
                 state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
             }
             if (patternMatcher != null && _logMatches)
             {
-                state.MatchLogBuilder.AppendLine($"{new string('\t', state.Id + 1)} {state.CurrentIndex}. {(success ? "Passed" : "Failed")} Bounds: {patternMatcher}");
+                state.MatchLogBuilder.AppendLine($"{new string('\t', state.Id + 1)} {(success && matchData != null ? matchData.StartIndex + matchData.Length : startIndex)}. {(success ? "Passed" : "Failed")} Bounds: {patternMatcher}");
             }
             return success;
         }
@@ -638,10 +643,10 @@ namespace Synfron.Staxe.Matcher
 /* Generated by Synfron.Staxe.Matcher v{version}*/
 
 using Synfron.Staxe.Matcher.Data;
-using System.Collections.Generic;
-using System;
-using System.Linq;
 using Synfron.Staxe.Matcher.Input;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 {(generator.LanguageMatcher.LogMatches ? "using System.Text;" : null)}
 
 namespace Synfron.Staxe.Matcher
@@ -662,7 +667,7 @@ namespace Synfron.Staxe.Matcher
             return $@"
         public override MatcherResult Match(string code, string fragmentMatcher, bool matchFullText = true)
         {{
-            FragmentMatchData matchData = new FragmentMatchData
+            FragmentMatchData parentMatchData = new FragmentMatchData
             {{
                 StartIndex = 0
             }};
@@ -673,7 +678,7 @@ namespace Synfron.Staxe.Matcher
 				DistinctStringMatches = new List<StringMatchData>(2000)" : null)}{(languageMatcher.Fragments.Any(fragment => fragment.Cacheable) ? @",
 				MatchCache = new Dictionary<ValueTuple<string, int>, FragmentMatchData>()" : null)}{(languageMatcher.LogMatches ? $@",
 				MatchLogBuilder = new StringBuilder()" : null)}{(languageMatcher.Blobs.Count > 0 ? $@",
-				BlobDatas = new Span<BlobData>(new BlobData[{languageMatcher.Blobs.Count}]);" : null)}
+				BlobDatas = new Span<BlobData>(new BlobData[{languageMatcher.Blobs.Count}])" : null)}
             }};
             
 			{(languageMatcher.IndexingMode == IndexingMode.Eager ? "state.PreMatchSuccess = PreMatchPatterns(ref state);" : null)}
@@ -688,10 +693,12 @@ namespace Synfron.Staxe.Matcher
                 "))}
             }}
 
-			IMatchData resultMatchData = matchData.Parts.FirstOrDefault();
+			IMatchData resultMatchData = parentMatchData.Parts.FirstOrDefault();
 			int? failureIndex = success ? null : state.FailureIndex;
 
-			if (success && matchFullText && (state.PreMatchSuccess ? state.MaxIndex : state.CurrentIndex) != state.Code.Length)
+			if (success && matchFullText && state.CurrentIndex < {(languageMatcher.IndexingMode == IndexingMode.Eager ? $@"(state.PreMatchSuccess ? 
+                    state.DistinctStringMatches.LastOrDefault().GetEndIndex() : " : null)}state.Code.Length
+                {(languageMatcher.IndexingMode == IndexingMode.Eager ? ")" : null)})
 			{{
 				success = false;
 				failureIndex = state.CurrentIndex;
@@ -702,7 +709,7 @@ namespace Synfron.Staxe.Matcher
 
         public override MatcherResult Match(string code, bool matchFullText = true)
         {{
-            FragmentMatchData matchData = new FragmentMatchData
+            FragmentMatchData parentMatchData = new FragmentMatchData
             {{
                 StartIndex = 0
             }};
@@ -712,17 +719,20 @@ namespace Synfron.Staxe.Matcher
                 Code = code{(languageMatcher.IndexingMode != IndexingMode.None ? @",
 				DistinctStringMatches = new List<StringMatchData>(2000)" : null)}{(languageMatcher.Fragments.Any(fragment => fragment.Cacheable) ? @",
 				MatchCache = new Dictionary<ValueTuple<string, int>, FragmentMatchData>()" : null)}{(languageMatcher.LogMatches ? $@",
-				MatchLogBuilder = new StringBuilder()" : null)}
+				MatchLogBuilder = new StringBuilder()" : null)}{(languageMatcher.Blobs.Count > 0 ? $@",
+				BlobDatas = new Span<BlobData>(new BlobData[{languageMatcher.Blobs.Count}])" : null)}
             }};
             
-			{(languageMatcher.IndexingMode == IndexingMode.Eager ? "PreMatchPatterns(ref state);" : null)}
+			{(languageMatcher.IndexingMode == IndexingMode.Eager ? "state.PreMatchSuccess = PreMatchPatterns(ref state);" : null)}
 
             bool success = {Generate(generator, languageMatcher.StartingFragment)};
 
-			IMatchData resultMatchData = matchData?.Parts.FirstOrDefault();
+			IMatchData resultMatchData = parentMatchData?.Parts.FirstOrDefault();
 			int? failureIndex = success ? null : state.FailureIndex;
 
-			if (success && matchFullText && state.CurrentIndex != state.Code.Length)
+			if (success && matchFullText && state.CurrentIndex < {(languageMatcher.IndexingMode == IndexingMode.Eager ? $@"(state.PreMatchSuccess ? 
+                    state.DistinctStringMatches.LastOrDefault().GetEndIndex() : " : null )}state.Code.Length
+                {(languageMatcher.IndexingMode == IndexingMode.Eager ? ")" : null)})
 			{{
 				success = false;
 				failureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
@@ -735,39 +745,14 @@ namespace Synfron.Staxe.Matcher
 		{{
 			int codeLength = state.Code.Length;
 			bool success = true;
-			bool previousNoise = false;
 			StringMatchData matchData = null;
 			int currentIndex = 0;
-			while ((currentIndex = state.CurrentIndex) < codeLength)
+			while (success && (currentIndex = state.CurrentIndex) < codeLength)
 			{{
-				success = {string.Join(" ||\n", languageMatcher.Patterns.Select(pattern => $@"{string.Format(GenerateMatchPattern(generator, pattern), "matchData", "true", "false")}"))};
-				if (!success)
-				{{
-					break;
-				}}
-				else if (matchData != null) {{
-					{(generator.LanguageMatcher.LogMatches ? $@"state.MatchLogBuilder.AppendLine($""{{currentIndex}}. Prematched {{matchData.Name}}: {{matchData.Text}}"");" : null)}
-					if (matchData.IsNoise)
-					{{
-						previousNoise = true;
-					}}
-					else if (previousNoise)
-					{{
-						if (state.DistinctIndex > 1)
-						{{
-							StringMatchData previousMatchData = state.DistinctStringMatches[state.DistinctIndex - 2];
-							if (previousMatchData.Name == matchData.Name && previousMatchData.Mergable)
-							{{
-								previousMatchData.Text += matchData.Text;
-								previousMatchData.Length = state.CurrentIndex - previousMatchData.StartIndex;
-								state.DistinctIndex--;
-								state.MaxDistinctIndex--;
-								state.DistinctStringMatches.RemoveAt(state.DistinctIndex);
-							}}
-						}}
-						previousNoise = false;
-					}}
-				}}
+				success = {string.Join(" ||\n", languageMatcher.Patterns.Select(pattern => $@"{string.Format(GeneratePreMatchPattern(generator, pattern), "null", "matchData", "true", "false")}"))};
+				{(generator.LanguageMatcher.LogMatches ? $@"if (matchData != null) {{
+				    state.MatchLogBuilder.AppendLine($""{{currentIndex}}. Prematched {{matchData.Name}}: {{matchData.Text}}"");
+				}}" : null)}
 			}}
 			state.CurrentIndex = 0;
 			{(languageMatcher.IndexingMode != IndexingMode.None ? "state.DistinctIndex = 0;" : null)}
@@ -779,18 +764,18 @@ namespace Synfron.Staxe.Matcher
         private static string GenerateMatchPattern(MatcherEngineGenerator generator, PatternMatcher pattern)
         {
             string methodName = $"MatchPattern{GetSafeMethodName(pattern.Name)}";
-            string method = $"{methodName}(ref state, out {{0}}, {{1}}, {{2}})";
+            string method = $"{methodName}(ref state, {{0}}, out {{1}}, {{2}}, {{3}})";
             if (!generator.TryGetMethod(methodName, ref method))
             {
                 generator.Add(methodName, method);
-                string code = $@"private bool {methodName}(ref State state, out StringMatchData matchData, bool required, bool readOnly = false)
+                string code = $@"private bool {methodName}(ref State state, FragmentMatchData fragmentMatchData, out StringMatchData matchData, bool required, bool readOnly = false)
             {{
                 bool success = false;
-                {(generator.IndexingMode != IndexingMode.None && pattern.IsStandard ? $@"int distinctIndex = state.DistinctIndex;
+                int startOffset = state.CurrentIndex;
+                {(generator.IndexingMode != IndexingMode.None ? $@"int distinctIndex = state.DistinctIndex;
                 if (distinctIndex >= state.MaxDistinctIndex)
                 {{" : null)}
                     int length;
-                    int startOffset = state.CurrentIndex;
                     (success, length) = {GenerateRawMatchPattern(generator, pattern)};
 					matchData = default;
 					if (success)
@@ -801,8 +786,6 @@ namespace Synfron.Staxe.Matcher
 							Text = state.Code.Substring(startOffset, length),
 							StartIndex = startOffset,
 							Length = length,
-							IsNoise = {pattern.IsNoise.ToString().ToLower()},
-							Mergable = {pattern.Mergable.ToString().ToLower()},
 							Id = {pattern.Id}
 						}};
 						{(!pattern.IsNoise && generator.IndexingMode != IndexingMode.None ? $@"state.DistinctStringMatches.Add(matchData);" : null)}
@@ -811,7 +794,10 @@ namespace Synfron.Staxe.Matcher
 						if (!readOnly)
 						{{
 							state.CurrentIndex = startOffset + length;
-                            state.MaxIndex = Math.Max(state.MaxIndex, state.CurrentIndex);
+                            if ((fragmentMatchData?.StartIndex ?? 0) < 0)
+                            {{
+                                fragmentMatchData.StartIndex = startOffset;
+                            }}
 						}}
 					}}
 					else if (!required)
@@ -819,9 +805,10 @@ namespace Synfron.Staxe.Matcher
 						success = true;
 					}}
 					return success;
-                {(generator.IndexingMode != IndexingMode.None && pattern.IsStandard ? $@"}}
+                {(generator.IndexingMode != IndexingMode.None ? $@"}}
                 else
                 {{
+                    int length;
 					matchData = state.DistinctStringMatches[distinctIndex];
                     if (matchData != null)
                     {{
@@ -829,8 +816,6 @@ namespace Synfron.Staxe.Matcher
                     }}
                     else
                     {{
-                        int length;
-                        int startOffset = state.CurrentIndex;
                         (success, length) = {GenerateRawMatchPattern(generator, pattern)};
                         if (success)
                         {{
@@ -840,8 +825,6 @@ namespace Synfron.Staxe.Matcher
 								Text = state.Code.Substring(startOffset, length),
 								StartIndex = startOffset,
 								Length = length,
-								IsNoise = {pattern.IsNoise.ToString().ToLower()},
-								Mergable = {pattern.Mergable.ToString().ToLower()},
 								Id = {pattern.Id}
 							}};
 							{(!pattern.IsNoise ? $@"state.DistinctStringMatches[distinctIndex] = matchData;" : null)}
@@ -850,8 +833,11 @@ namespace Synfron.Staxe.Matcher
 					if (success && !readOnly)
 					{{
 						{(!pattern.IsNoise ? $@"state.DistinctIndex++;" : null)}
-						state.CurrentIndex = startOffset + length;
-                        state.MaxIndex = Math.Max(state.MaxIndex, state.CurrentIndex);
+						state.CurrentIndex = matchData.StartIndex + matchData.Length;
+                        if ((fragmentMatchData?.StartIndex ?? 0) < 0)
+                        {{
+                            fragmentMatchData.StartIndex = matchData.StartIndex;
+                        }}
 					}}
 					if (!required)
 					{{
@@ -859,26 +845,59 @@ namespace Synfron.Staxe.Matcher
 					}}
 					return success;
                 }}" : null)}
-                {(!pattern.IsStandard && pattern is FragmentPatternMatcher fragmentPatternMatcher && fragmentPatternMatcher.Fragment is FragmentMatcher fragmentMatcher ? $@"
-                int startOffset = state.CurrentIndex;{(pattern.IsNoise ? $@"
-                int distinctStringMatchesCount = state.DistinctStringMatches.Count;
-                int distinctIndex = state.DistinctIndex;
-                int maxDistinctIndex = state.MaxDistinctIndex;
-                " : null)}
-                FragmentMatchData partMatcherData;
-				{GenerateMatchByFragmentMatcherSection(generator, fragmentMatcher)}
-                {(fragmentMatcher.Cacheable ? $@"
-                state.MatchCache[new ValueTuple<string, int>({fragmentMatcher.Name}, startOffset)] = partMatcherData;
-                " : null)}{(pattern.IsNoise ? $@"
-                state.DistinctStringMatches.RemoveRange(distinctStringMatchesCount, state.DistinctStringMatches.Count - distinctStringMatchesCount);
-                state.DistinctIndex = distinctIndex;
-                state.MaxDistinctIndex = maxDistinctIndex;
-                " : null)}
-                success = success && state.CurrentIndex > startIndex;" : null)}
             }}";
                 method = generator.Add(method, methodName, code);
             }
             return method;
+        }
+
+        private static string GeneratePreMatchPattern(MatcherEngineGenerator generator, PatternMatcher pattern)
+        {
+            if (pattern is FragmentPatternMatcher)
+            {
+                string methodName = $"MatchPattern{GetSafeMethodName(pattern.Name)}";
+                string method = $"{methodName}(ref state, {{0}}, out {{1}}, {{2}}, {{3}})";
+                if (!generator.TryGetMethod(methodName, ref method))
+                {
+                    generator.Add(methodName, method);
+                    string code = $@"private bool {methodName}(ref State state, FragmentMatchData fragmentMatchData, out StringMatchData matchData, bool required, bool readOnly = false)
+            {{
+                {(!pattern.IsStandard && pattern is FragmentPatternMatcher fragmentPatternMatcher && fragmentPatternMatcher.Fragment is FragmentMatcher fragmentMatcher ? $@"
+                bool success = false;
+                int startOffset = state.CurrentIndex;
+                int distinctIndex = state.DistinctIndex;
+                int maxDistinctIndex = state.MaxDistinctIndex;
+                {(fragmentMatcher.Cacheable ? $@"
+                StringMatchData lastDistinctMatchData = state.DistinctStringMatches.LastOrDefault();
+                int cacheIndex = lastDistinctMatchData != null ?
+                    lastDistinctMatchData.StartIndex + lastDistinctMatchData.Length :
+                    0;
+                " : null)}
+                FragmentMatchData partMatchData;
+				{GenerateMatchByFragmentMatcherSection(generator, fragmentMatcher, $@"{(fragmentMatcher.Cacheable ? $@"
+                state.MatchCache[new ValueTuple<string, int>(""{GetEscapedName(fragmentMatcher.Name)}"", cacheIndex)] = partMatchData;" : null)}
+                {(pattern.IsNoise ? "partMatchData.EndDistinctIndex = distinctIndex;" : null)}", null)}
+                {(!fragmentMatcher.Negate && !pattern.IsNoise ? $@"if (!success)
+                {{" : null)}
+                    state.DistinctStringMatches.RemoveRange(distinctIndex, state.DistinctIndex - distinctIndex);
+                    state.DistinctIndex = distinctIndex;
+                    state.MaxDistinctIndex = maxDistinctIndex;
+                    {(!fragmentMatcher.Negate && pattern.IsNoise ? $@"if (!success)
+                    {{
+                        state.CurrentIndex = startOffset;
+                    }}" : "state.CurrentIndex = startOffset;")}
+                {(!fragmentMatcher.Negate && !pattern.IsNoise ? $"}}" : null)}
+                matchData = null;
+                return success;" : null)}
+            }}";
+                    method = generator.Add(method, methodName, code);
+                }
+                return method;
+            } 
+            else
+            {
+                return GenerateMatchPattern(generator, pattern);
+            }
         }
 
         private static string GenerateRawMatchPattern(MatcherEngineGenerator generator, PatternMatcher pattern)
@@ -888,13 +907,13 @@ namespace Synfron.Staxe.Matcher
 
         private static string GenerateMatcherAction(MatcherEngineGenerator generator, MatcherAction action)
         {
-            return string.Format(action.Generate(generator), "state.BlobDatas", "partMatcherData.Parts");
+            return string.Format(action.Generate(generator), "state.BlobDatas", "partMatchData.Parts");
         }
 
         private static string GenerateMatchFragmentPartsOrderedMode(MatcherEngineGenerator generator, FragmentMatcher fragmentMatcher)
         {
             string methodName = $"MatchFragmentPartsOrderedMode{GetSafeMethodName(fragmentMatcher.Name)}";
-            string method = $"{methodName}(ref state, partMatcherData)";
+            string method = $"{methodName}(ref state, partMatchData)";
             if (!generator.TryGetMethod(methodName, ref method))
             {
                 generator.Add(methodName, method);
@@ -902,7 +921,7 @@ namespace Synfron.Staxe.Matcher
                 for (int partIndex = 0; partIndex < fragmentMatcher.Parts.Count; partIndex++)
                 {
                     functionText.AppendLine($@"{(partIndex > 0 ? $@"distinctIndex = state.DistinctIndex;
-                    partSuccess = {(fragmentMatcher.PartsDelimiter != null ? string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsDelimiter), "stringMatchData", fragmentMatcher.PartsDelimiterRequired.ToString().ToLower(), "false") : "true")};
+                    partSuccess = {(fragmentMatcher.PartsDelimiter != null ? string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsDelimiter), "parentMatchData", "stringMatchData", fragmentMatcher.PartsDelimiterRequired.ToString().ToLower(), "false") : "true")};
                     success = partSuccess;
                     if (!success)
                     {{
@@ -925,14 +944,14 @@ namespace Synfron.Staxe.Matcher
                 }}");
                 }
 
-                string code = $@"private bool {methodName}(ref State state, FragmentMatchData matchData)
+                string code = $@"private bool {methodName}(ref State state, FragmentMatchData parentMatchData)
                 {{
                     bool success = true;
                     bool partSuccess;
                     int matchCount = 0;
                     StringMatchData stringMatchData = null;
                     int distinctIndex = state.DistinctIndex;
-                    {(fragmentMatcher.PartsPadding != null ? string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsPadding), "_", "false", "false") : null)};
+                    {(fragmentMatcher.PartsPadding != null ? string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsPadding), "parentMatchData", "_", "false", "false") : null)};
 
                     {functionText}
 
@@ -940,10 +959,10 @@ namespace Synfron.Staxe.Matcher
                     {(fragmentMatcher.PartsPadding != null ?
                         $@"if (success)
                     {{
-                        {string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsPadding), "_", "false", "false")};
+                        {string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsPadding), "parentMatchData", "_", "false", "false")};
                     }}" : null)}
             
-                    success = success && {(fragmentMatcher.MinMatchedParts ?? fragmentMatcher.Parts.Count)} <= matchCount;
+                    success = {(fragmentMatcher.MinMatchedParts ?? fragmentMatcher.Parts.Count)} <= matchCount;
                     if ({(!fragmentMatcher.Negate ? "!" : null)}success)
                     {{
 						state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
@@ -958,15 +977,15 @@ namespace Synfron.Staxe.Matcher
         private static string GenerateMatchFragmentPartsOneMode(MatcherEngineGenerator generator, FragmentMatcher fragmentMatcher)
         {
             string methodName = $"MatchFragmentPartsOneMode{GetSafeMethodName(fragmentMatcher.Name)}";
-            string method = $"{methodName}(ref state, partMatcherData)";
+            string method = $"{methodName}(ref state, partMatchData)";
             if (!generator.TryGetMethod(methodName, ref method))
             {
                 generator.Add(methodName, method);
-                string code = $@"private bool {methodName}(ref State state, FragmentMatchData matchData)
+                string code = $@"private bool {methodName}(ref State state, FragmentMatchData parentMatchData)
                 {{
                     bool success = false;
                     int matchCount = 0;
-                    {(fragmentMatcher.PartsPadding != null ? $"{string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsPadding), "_", "false", "false")};" : null)}
+                    {(fragmentMatcher.PartsPadding != null ? $"{string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsPadding), "parentMatchData", "_", "false", "false")};" : null)}
 
                     {(fragmentMatcher.Parts.Count > 0 ? $@"
                     success = {string.Join(" || ", fragmentMatcher.Parts.Select(part => GenerateMatchFragmentPart(generator, part)))};
@@ -978,10 +997,10 @@ namespace Synfron.Staxe.Matcher
                     {(fragmentMatcher.PartsPadding != null ?
                         $@"if (success)
                     {{
-                        {string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsPadding), "_", "false", "false")};
+                        {string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsPadding), "parentMatchData", "_", "false", "false")};
                     }}" : null)}
             
-                    success = {((fragmentMatcher.MinMatchedParts ?? 1) <= 0).ToString().ToLower()} && matchCount > 0;
+                    success = {((fragmentMatcher.MinMatchedParts ?? 1) <= 0 ? "true" : "matchCount > 0")};
                     if ({(!fragmentMatcher.Negate ? "!" : null)}success)
                     {{
 						state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
@@ -996,7 +1015,7 @@ namespace Synfron.Staxe.Matcher
         private static string GenerateMatchFragmentPartsMultipleMode(MatcherEngineGenerator generator, FragmentMatcher fragmentMatcher)
         {
             string methodName = $"MatchFragmentPartsMultipleMode{GetSafeMethodName(fragmentMatcher.Name)}";
-            string method = $"{methodName}(ref state, partMatcherData)";
+            string method = $"{methodName}(ref state, partMatchData)";
             if (!generator.TryGetMethod(methodName, ref method))
             {
                 generator.Add(methodName, method);
@@ -1009,13 +1028,13 @@ namespace Synfron.Staxe.Matcher
                     {{
                         matchCount++;
                         distinctIndex = state.DistinctIndex;
-                        delimiterSuccess = {(fragmentMatcher.PartsDelimiter != null ? string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsDelimiter), "range", fragmentMatcher.PartsDelimiterRequired.ToString().ToLower(), "false") : "true")};
+                        delimiterSuccess = {(fragmentMatcher.PartsDelimiter != null ? string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsDelimiter), "parentMatchData", "range", fragmentMatcher.PartsDelimiterRequired.ToString().ToLower(), "false") : "true")};
                         goto Break;
                     }}
                     ");
                 }
 
-                string code = $@"private bool {methodName}(ref State state, FragmentMatchData matchData)
+                string code = $@"private bool {methodName}(ref State state, FragmentMatchData parentMatchData)
                 {{
                     bool overallSuccess = false;
                     bool subSuccess = false;
@@ -1023,7 +1042,7 @@ namespace Synfron.Staxe.Matcher
                     StringMatchData range = default;
                     int matchCount = 0;
                     int distinctIndex = state.DistinctIndex;
-                    {(fragmentMatcher.PartsPadding != null ? string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsPadding), "_", "false", "false") : null)};
+                    {(fragmentMatcher.PartsPadding != null ? string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsPadding), "parentMatchData", "_", "false", "false") : null)};
 
                     do
                     {{
@@ -1043,11 +1062,10 @@ namespace Synfron.Staxe.Matcher
                     {(fragmentMatcher.PartsPadding != null ?
                         $@"if (overallSuccess)
                     {{
-                        {string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsPadding), "_", "false", "false")};
+                        {string.Format(GenerateMatchPattern(generator, fragmentMatcher.PartsPadding), "parentMatchData", "_", "false", "false")};
                     }}" : null)}
             
-                    bool thresholdSuccess = {fragmentMatcher.MinMatchedParts ?? 1} <= matchCount;
-                    bool success = overallSuccess && thresholdSuccess;
+                    bool success = {fragmentMatcher.MinMatchedParts ?? 1} <= matchCount;
                     if ({(!fragmentMatcher.Negate ? "!" : null)}success)
                     {{
 						state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
@@ -1069,18 +1087,19 @@ namespace Synfron.Staxe.Matcher
         private static string GenerateMatchFragmentBounds(MatcherEngineGenerator generator, FragmentMatcher fragmentMatcher, PatternMatcher matcher)
         {
             string methodName = $"MatchFragmentBounds{GetSafeMethodName(matcher.Name)}";
-            string method = $"{methodName}(ref state, {{0}}, out {{1}})";
+            string method = $"{methodName}(ref state, {{0}}, {{1}}, out {{2}})";
             if (!generator.TryGetMethod(methodName, ref method))
             {
                 generator.Add(methodName, method);
-                string code = $@"private bool {methodName}(ref State state, bool readOnly, out StringMatchData matchData)
-        {{
-            bool success = {string.Format(GenerateMatchPattern(generator, matcher), "matchData", "true", "readOnly")};
+                string code = $@"private bool {methodName}(ref State state, FragmentMatchData parentMatchData, bool readOnly, out StringMatchData matchData)
+        {{{(generator.LanguageMatcher.LogMatches ? @"
+            int startIndex = state.CurrentIndex;" : "")}
+            bool success = {string.Format(GenerateMatchPattern(generator, matcher), "parentMatchData", "matchData", "true", "readOnly")};
             if ({(!fragmentMatcher.Negate ? "!" : null)}success)
             {{
 				state.FailureIndex = Math.Max(state.FailureIndex ?? 0, state.CurrentIndex);
             }}
-			{(generator.LanguageMatcher.LogMatches ? $@"state.MatchLogBuilder.AppendLine($""{{new String('\t', state.Id + 1)}} {{state.CurrentIndex}}. {{(success ? ""Passed"" : ""Failed"")}} Bounds: {{""{HttpUtility.JavaScriptStringEncode(matcher.ToString())}""}}"");" : null)}
+			{(generator.LanguageMatcher.LogMatches ? $@"state.MatchLogBuilder.AppendLine($""{{new String('\t', state.Id + 1)}} {{(success && matchData != null ? matchData.StartIndex + matchData.Length : startIndex)}}. {{(success ? ""Passed"" : ""Failed"")}} Bounds: {{""{HttpUtility.JavaScriptStringEncode(matcher.ToString())}""}}"");" : null)}
             return success;
         }}";
                 method = generator.Add(method, methodName, code);
@@ -1091,25 +1110,26 @@ namespace Synfron.Staxe.Matcher
         private static string GenerateMatchPartByTextMatcher(MatcherEngineGenerator generator, PatternMatcher matcher)
         {
             string methodName = $"MatchPartByTextMatcher{GetSafeMethodName(matcher.Name)}";
-            string method = $"{methodName}(ref state, matchData)";
+            string method = $"{methodName}(ref state, parentMatchData)";
             if (!generator.TryGetMethod(methodName, ref method))
             {
                 generator.Add(methodName, method);
-                string code = $@"private bool {methodName}(ref State state, FragmentMatchData matchData)
+                string code = $@"private bool {methodName}(ref State state, FragmentMatchData parentMatchData)
         {{
             
-            {(generator.LanguageMatcher.LogMatches ? $@"int currentId = ++state.Id;
-            state.MatchLogBuilder.AppendLine($""{{new String('\t', currentId)}} {{state.CurrentIndex}}. Try: {HttpUtility.JavaScriptStringEncode(matcher.Name)}"");" : null)}
+            {(generator.LanguageMatcher.LogMatches ? $@"state.Id++;
+            int startIndex = state.CurrentIndex;
+            state.MatchLogBuilder.AppendLine($""{{new String('\t', state.Id)}} {{startIndex}}. Try: {HttpUtility.JavaScriptStringEncode(matcher.ToString())}"");" : null)}
 			StringMatchData partMatchData;
-            bool success = {string.Format(GenerateMatchPattern(generator, matcher), "partMatchData", "true", "false")};
+            bool success = {string.Format(GenerateMatchPattern(generator, matcher), "parentMatchData", "partMatchData", "true", "false")};
             if (success)
             {{
-                matchData.Parts.Add(partMatchData);
-                {(generator.LanguageMatcher.LogMatches ? $@"state.MatchLogBuilder.AppendLine($""{{new String('\t', state.Id + 1)}} {{state.CurrentIndex}}. Matched: {{partMatchData.Text}}"");" : null)}
+                parentMatchData.Parts.Add(partMatchData);
+                {(generator.LanguageMatcher.LogMatches ? $@"state.MatchLogBuilder.AppendLine($""{{new String('\t', state.Id + 1)}} {{partMatchData?.StartIndex ?? startIndex}}. Matched: {{partMatchData.Text}}"");" : null)}
             }}
 
-            {(generator.LanguageMatcher.LogMatches ? $@"state.MatchLogBuilder.AppendLine($""{{new String('\t', currentId)}} {{state.CurrentIndex}}. {{(success ? ""Passed"" : ""Failed"")}}: {HttpUtility.JavaScriptStringEncode(matcher.Name)}"");
-            state.Id = currentId - 1;" : null)}
+            {(generator.LanguageMatcher.LogMatches ? $@"state.MatchLogBuilder.AppendLine($""{{new String('\t', state.Id)}} {{(success && partMatchData != null ? partMatchData.StartIndex + partMatchData.Length : startIndex)}}. {{(success ? ""Passed"" : ""Failed"")}}: {HttpUtility.JavaScriptStringEncode(matcher.ToString())}"");
+            state.Id--;" : null)}
             return success;
         }}";
                 method = generator.Add(method, methodName, code);
@@ -1117,18 +1137,18 @@ namespace Synfron.Staxe.Matcher
             return method;
         }
 
-        private static string GenerateMatchByFragmentMatcherSection(MatcherEngineGenerator generator, FragmentMatcher fragmentMatcher)
+        private static string GenerateMatchByFragmentMatcherSection(MatcherEngineGenerator generator, FragmentMatcher fragmentMatcher, string onSuccess, string onFail)
         {
-            return $@"partMatcherData = new FragmentMatchData
+            return $@"partMatchData = new FragmentMatchData
 			{{
 				Name = ""{GetEscapedName(fragmentMatcher.Name)}"",
-				StartIndex = state.CurrentIndex{(fragmentMatcher.ExpressionOrder != null ? $@",
+				StartIndex = -1{(fragmentMatcher.ExpressionOrder != null ? $@",
 				ExpressionOrder = {fragmentMatcher.ExpressionOrder}" : null)}
 			}};
 
 			{(fragmentMatcher.Start != null ? $"StringMatchData startMatchData;" : null)}
-			{(fragmentMatcher.End != null ? $"StringMatchData endMatchData;" : null)}
-			success = ({(fragmentMatcher.Start != null ? $"{string.Format(GenerateMatchFragmentBounds(generator, fragmentMatcher, fragmentMatcher.Start), fragmentMatcher.DiscardBounds.ToString().ToLower(), "startMatchData")} && " : null)}{GenerateMatchFragmentParts(generator, fragmentMatcher)}{(fragmentMatcher.End != null ? $" && {string.Format(GenerateMatchFragmentBounds(generator, fragmentMatcher, fragmentMatcher.End), fragmentMatcher.DiscardBounds.ToString().ToLower(), "endMatchData")}" : null)});
+			{(fragmentMatcher.End != null ? $"StringMatchData endMatchData = null;" : null)}
+			success = ({(fragmentMatcher.Start != null ? $"{string.Format(GenerateMatchFragmentBounds(generator, fragmentMatcher, fragmentMatcher.Start), "partMatchData", fragmentMatcher.DiscardBounds.ToString().ToLower(), "startMatchData")} && " : null)}{GenerateMatchFragmentParts(generator, fragmentMatcher)}{(fragmentMatcher.End != null ? $" && {string.Format(GenerateMatchFragmentBounds(generator, fragmentMatcher, fragmentMatcher.End), "partMatchData", fragmentMatcher.DiscardBounds.ToString().ToLower(), "endMatchData")}" : null)});
 				
 			{(fragmentMatcher.Actions != null && fragmentMatcher.Actions.Count > 0 ? $@"
 			if (success)
@@ -1136,73 +1156,76 @@ namespace Synfron.Staxe.Matcher
 				success = {string.Join(" && ", fragmentMatcher.Actions.Select(action => GenerateMatcherAction(generator, action)))};
 			}}
 			" : null)}
-				
 			if (success)
 			{{
-				{(!fragmentMatcher.Negate ? $@"partMatcherData.Length = state.CurrentIndex - partMatcherData.StartIndex;
-				partMatcherData.EndDistinctIndex = state.DistinctIndex;" : null)}
-				{(fragmentMatcher.Cacheable ? $@"state.MatchCache[new ValueTuple<string, int>(""{GetEscapedName(fragmentMatcher.Name)}"", startIndex)] = partMatcherData;" : null)}
-				{(!fragmentMatcher.IsNoise && fragmentMatcher.ExpressionMode != ExpressionMode.None && !fragmentMatcher.Negate ? $"ConvertToExpressionTree(partMatcherData, ExpressionMode.{fragmentMatcher.ExpressionMode});" : null)}
+				{(!fragmentMatcher.Negate ? $@"partMatchData.Length = state.CurrentIndex - partMatchData.StartIndex;
+				partMatchData.EndDistinctIndex = state.DistinctIndex;" : null)}
+				{(!fragmentMatcher.IsNoise && fragmentMatcher.ExpressionMode != ExpressionMode.None && !fragmentMatcher.Negate ? $"ConvertToExpressionTree(partMatchData, ExpressionMode.{fragmentMatcher.ExpressionMode});" : null)}
 				{(fragmentMatcher.BoundsAsParts && fragmentMatcher.Start != null && !fragmentMatcher.Negate ? $@"if (startMatchData != null)
 				{{
-					partMatcherData.Parts.Insert(0, startMatchData);
+					partMatchData.Parts.Insert(0, startMatchData);
 				}}" : null)}
 				{(fragmentMatcher.BoundsAsParts && fragmentMatcher.End != null && !fragmentMatcher.Negate ? $@"if (endMatchData != null)
 				{{
-					partMatcherData.Parts.Add(endMatchData);
+					partMatchData.Parts.Add(endMatchData);
 				}}" : null)}
-			}}";
+                {(!string.IsNullOrWhiteSpace(onSuccess) ? onSuccess : null)}
+			}}{(!string.IsNullOrWhiteSpace(onFail) ? $@"
+            else {{
+                {onFail}
+            }}
+            " : null)}";
         }
         
         private static string Generate(MatcherEngineGenerator generator, FragmentMatcher fragmentMatcher)
         {
             string methodName = $"MatchFragment{GetSafeMethodName(fragmentMatcher.Name)}";
-            string method = $"{methodName}(ref state, matchData)";
+            string method = $"{methodName}(ref state, parentMatchData)";
             if (!generator.TryGetMethod(methodName, ref method))
             {
                 generator.Add(methodName, method);
-                string code = $@"private bool {methodName}(ref State state, FragmentMatchData matchData)
+                string code = $@"private bool {methodName}(ref State state, FragmentMatchData parentMatchData)
         {{
-            {(generator.LanguageMatcher.LogMatches ? $@"int currentId = ++state.Id;
-            state.MatchLogBuilder.AppendLine($""{{new String('\t', currentId)}} {{state.CurrentIndex}}. Try: {GetEscapedName(fragmentMatcher.Name)}"");" : null)}
 			bool success = false;
-			FragmentMatchData partMatcherData = null;
-			{(fragmentMatcher.Cacheable ? $@"if (!state.MatchCache.TryGetValue(new ValueTuple<string, int>(""{GetEscapedName(fragmentMatcher.Name)}"", state.CurrentIndex), out partMatcherData))
-			{{" : null)}
 			int startIndex = state.CurrentIndex;
+			FragmentMatchData partMatchData = null;
+            {(generator.LanguageMatcher.LogMatches ? $@"state.Id++;
+            state.MatchLogBuilder.AppendLine($""{{new String('\t', state.Id)}} {{startIndex}}. Try: {GetEscapedName(fragmentMatcher.ToString())}"");" : null)}
+			{(fragmentMatcher.Cacheable ? $@"if (!state.MatchCache.TryGetValue(new ValueTuple<string, int>(""{GetEscapedName(fragmentMatcher.Name)}"", state.CurrentIndex), out partMatchData))
+			{{" : null)}
 			int distinctIndex = state.DistinctIndex;
-			{GenerateMatchByFragmentMatcherSection(generator, fragmentMatcher)}
-			else
-			{{
-				{(fragmentMatcher.Cacheable ? $@"state.MatchCache[new ValueTuple<string, int>(""{GetEscapedName(fragmentMatcher.Name)}"", startIndex)] = null;" : null)}
+			{GenerateMatchByFragmentMatcherSection(generator, fragmentMatcher, $@"{(fragmentMatcher.Cacheable ? $@"state.MatchCache[new ValueTuple<string, int>(""{GetEscapedName(fragmentMatcher.Name)}"", startIndex)] = partMatchData;" : null)}", $@"{(fragmentMatcher.Cacheable ? $@"state.MatchCache[new ValueTuple<string, int>(""{GetEscapedName(fragmentMatcher.Name)}"", startIndex)] = null;" : null)}
 				{(!fragmentMatcher.Negate ? $@"state.CurrentIndex = startIndex;
-				state.DistinctIndex = distinctIndex;" : null)}
-			}}
+				state.DistinctIndex = distinctIndex;" : null)}")}
+
 			{(fragmentMatcher.Negate ? $@"state.CurrentIndex = startIndex;
 			state.DistinctIndex = distinctIndex;" : null)}
 			{(fragmentMatcher.Cacheable ? $@"}}" : null)}
-			{(fragmentMatcher.Cacheable && !fragmentMatcher.Negate ? $@"else if (success = partMatcherData != null)
+			{(fragmentMatcher.Cacheable && !fragmentMatcher.Negate ? $@"else if (success = partMatchData != null)
 			{{
-				state.CurrentIndex = startIndex + partMatcherData.Length;
-                state.MaxIndex = Math.Max(state.MaxIndex, state.CurrentIndex);
-				state.DistinctIndex = partMatcherData.EndDistinctIndex;
+				state.CurrentIndex = partMatchData.StartIndex + partMatchData.Length;
+				state.DistinctIndex = partMatchData.EndDistinctIndex;
 			}}" : null)}
             {(!fragmentMatcher.Negate ? $@"if (success)
             {{
-				{(!fragmentMatcher.IsNoise && fragmentMatcher.FallThroughMode == FallThroughMode.All ? "matchData.Parts.AddRange(partMatcherData.Parts);" : null)}
-				{(!fragmentMatcher.IsNoise && fragmentMatcher.FallThroughMode == FallThroughMode.None ? "matchData.Parts.Add(partMatcherData);" : null)}
-				{(!fragmentMatcher.IsNoise && fragmentMatcher.FallThroughMode != FallThroughMode.None && fragmentMatcher.FallThroughMode != FallThroughMode.All ? $@"if (partMatcherData.Parts.Count <= {(int)fragmentMatcher.FallThroughMode})
+                if (parentMatchData.StartIndex < 0)
+                {{
+                    parentMatchData.StartIndex = partMatchData.StartIndex;
+                }}
+				{(!fragmentMatcher.IsNoise && fragmentMatcher.FallThroughMode == FallThroughMode.All ? "parentMatchData.Parts.AddRange(partMatchData.Parts);" : null)}
+				{(!fragmentMatcher.IsNoise && fragmentMatcher.FallThroughMode == FallThroughMode.None ? "parentMatchData.Parts.Add(partMatchData);" : null)}
+				{(!fragmentMatcher.IsNoise && fragmentMatcher.FallThroughMode.IsCountBased() ? $@"if (partMatchData.Parts.Count <= {(int)fragmentMatcher.FallThroughMode})
 				{{ 
-					matchData.Parts.AddRange(partMatcherData.Parts);
+					parentMatchData.Parts.AddRange(partMatchData.Parts);
 				}}
 				else
 				{{
-					matchData.Parts.Add(partMatcherData);
+					parentMatchData.Parts.Add(partMatchData);
 				}}" : null)}
 				{(fragmentMatcher.ClearCache ? "state.MatchCache.Clear();" : null)}
 			}}" : null)}
-            {(generator.LanguageMatcher.LogMatches ? $@"state.MatchLogBuilder.AppendLine($""{{new String('\t', currentId)}} {{state.CurrentIndex}}. {{({(fragmentMatcher.Negate ? "!" : null)}success ? ""Passed"" : ""Failed"")}}: {GetEscapedName(fragmentMatcher.Name)}"");
-            state.Id = currentId - 1;" : null)}
+            {(generator.LanguageMatcher.LogMatches ? $@"state.MatchLogBuilder.AppendLine($""{{new String('\t', state.Id)}} {{state.CurrentIndex}}. {{({(fragmentMatcher.Negate ? "!" : null)}success ? ""Passed"" : ""Failed"")}}: {GetEscapedName(fragmentMatcher.ToString())}"");
+            state.Id--;" : null)}
             return {(fragmentMatcher.Negate ? "!" : null)}success;
         }}";
                 method = generator.Add(method, methodName, code);
